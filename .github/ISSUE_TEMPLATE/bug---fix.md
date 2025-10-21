@@ -2,7 +2,7 @@
 name: Bug & Fix
 about: 버그 수정 및 코드 변경
 title: "[BUG]"
-labels: "\U0001F41BBug"
+labels: "\U0001F41BBug, \U0001F6E0️ Fix"
 assignees: molcham
 
 ---
