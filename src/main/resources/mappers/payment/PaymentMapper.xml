@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.mudosa.musinsa.domain.payment.mapper.PaymentMapper">
+
+    <!-- ResultMap 예시 -->
+    <resultMap id="PaymentResultMap" type="com.mudosa.musinsa.domain.payment.entity.Payment">
+        <id property="paymentId" column="payment_id"/>
+        <result property="paymentMethodId" column="payment_method_id"/>
+        <result property="paymentStatus" column="payment_status"/>
+        <result property="orderId" column="order_id"/>
+        <result property="currency" column="currency"/>
+        <result property="pgProvider" column="pg_provider"/>
+        <result property="pgTransactionId" column="pg_transaction_id"/>
+        <result property="amount" column="amount"/>
+        <result property="cancelledAt" column="cancelled_at"/>
+        <result property="approvedAt" column="approved_at"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <!-- 결제 조회 -->
+    <select id="findById" parameterType="long" resultMap="PaymentResultMap">
+        SELECT *
+        FROM Payment
+        WHERE payment_id = #{paymentId}
+    </select>
+
+    <!-- 주문 ID로 결제 조회 -->
+    <select id="findByOrderId" parameterType="long" resultMap="PaymentResultMap">
+        SELECT *
+        FROM Payment
+        WHERE order_id = #{orderId}
+        ORDER BY created_at DESC
+    </select>
+
+    <!-- PG 거래 ID로 결제 조회 -->
+    <select id="findByPgTransactionId" parameterType="string" resultMap="PaymentResultMap">
+        SELECT *
+        FROM Payment
+        WHERE pg_transaction_id = #{pgTransactionId}
+    </select>
+
+    <!-- 결제 통계 (일자별) -->
+    <select id="getDailyPaymentStats" resultType="map">
+        SELECT 
+            DATE(p.created_at) AS payment_date,
+            COUNT(*) AS payment_count,
+            SUM(p.amount) AS total_amount,
+            pm.payment_name AS payment_method
+        FROM Payment p
+        JOIN PaymentMethod pm ON p.payment_method_id = pm.payment_method_id
+        WHERE p.created_at BETWEEN #{startDate} AND #{endDate}
+          AND p.payment_status = (
+              SELECT status_code_id 
+              FROM status_codes 
+              WHERE status_code = 'APPROVED' 
+                AND domain_type = 'PAYMENT'
+          )
+        GROUP BY DATE(p.created_at), pm.payment_name
+        ORDER BY payment_date DESC
+    </select>
+
+    <!-- 결제 수단별 통계 -->
+    <select id="getPaymentMethodStats" resultType="map">
+        SELECT 
+            pm.payment_name,
+            COUNT(*) AS count,
+            SUM(p.amount) AS total_amount,
+            AVG(p.amount) AS avg_amount
+        FROM Payment p
+        JOIN PaymentMethod pm ON p.payment_method_id = pm.payment_method_id
+        WHERE p.created_at BETWEEN #{startDate} AND #{endDate}
+        GROUP BY pm.payment_method_id, pm.payment_name
+        ORDER BY total_amount DESC
+    </select>
+
+</mapper>
