@@ -24,7 +24,7 @@ spring:
   # JPA 개발 환경 설정
   jpa:
     hibernate:
-      ddl-auto: validate  # 스키마 검증만 (자동 생성 안 함)
+      ddl-auto: none  # 일단 스키마 완벽해질 때까지만 검증 작업 안함
       naming:
         physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
         implicit-strategy: org.hibernate.boot.model.naming.ImplicitNamingStrategyLegacyJpaImpl
@@ -60,14 +60,14 @@ spring:
 logging:
   level:
     # Application 로깅
-    com.mudosa.musinsa: debug
+    com.mudosa.musinsa: info
     
     # JPA/Hibernate 로깅
-    org.hibernate.SQL: debug
-    org.hibernate.type.descriptor.sql.BasicBinder: trace  # 바인딩 파라미터
-    org.hibernate.type.descriptor.sql.BasicExtractor: trace  # 결과 추출
-    org.hibernate.engine.transaction.internal.TransactionImpl: debug
-    org.hibernate.stat: debug  # Hibernate 통계
+    org.hibernate.SQL: info
+    org.hibernate.type.descriptor.sql.BasicBinder: info  # 바인딩 파라미터
+    org.hibernate.type.descriptor.sql.BasicExtractor: info  # 결과 추출
+    org.hibernate.engine.transaction.internal.TransactionImpl: info
+    org.hibernate.stat: info  # Hibernate 통계
     
     # MyBatis 로깅 (도메인별)
     com.mudosa.musinsa.domain.order.mapper: trace
@@ -79,17 +79,17 @@ logging:
     com.mudosa.musinsa.domain.event.mapper: trace
     
     # Spring Framework 로깅
-    org.springframework.web: debug
-    org.springframework.security: debug
-    org.springframework.jdbc.core: debug
-    org.springframework.transaction: debug
+    org.springframework.web: info
+    org.springframework.security: info
+    org.springframework.jdbc.core: info
+    org.springframework.transaction: info
     
     # HikariCP 로깅
-    com.zaxxer.hikari: debug
+    com.zaxxer.hikari: info
     
     # Connection Pool 상태 모니터링
-    com.zaxxer.hikari.pool.HikariPool: debug
-    com.zaxxer.hikari.pool.PoolBase: debug
+    com.zaxxer.hikari.pool.HikariPool: info
+    com.zaxxer.hikari.pool.PoolBase: info
 
 # ========================================
 # JWT 개발 환경 설정

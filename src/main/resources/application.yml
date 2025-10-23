@@ -67,11 +67,6 @@ spring:
     time-zone: Asia/Seoul
     date-format: yyyy-MM-dd HH:mm:ss
 
-  # Security 공통 설정
-  security:
-    filter:
-      order: 10
-
 # ========================================
 # Swagger (SpringDoc) 공통 설정
 # ========================================

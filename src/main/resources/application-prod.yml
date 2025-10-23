@@ -141,12 +141,6 @@ server:
     min-response-size: 1024
     mime-types: application/json,application/xml,text/html,text/xml,text/plain,application/javascript,text/css
 
-# ========================================
-# Security 프로덕션 설정
-# ========================================
-spring.security:
-  # HTTPS 강제 (프로덕션)
-  require-ssl: true
 
 # ========================================
 # Management / Actuator (프로덕션 환경 - 제한적)
