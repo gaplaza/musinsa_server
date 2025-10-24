@@ -103,7 +103,7 @@ public class TossPaymentStrategy implements PaymentStrategy {
 			throw new BusinessException(ErrorCode.PAYMENT_APPROVAL_FAILED, e.getMessage());
 		} catch (Exception e) {
 			log.error("[TossPayments] 결제 승인 중 예외 발생", e);
-			throw new BusinessException(ErrorCode.PAYMENT_APPROVAL_FAILED);
+			throw new BusinessException(ErrorCode.PAYMENT_APPROVAL_FAILED, e.getMessage());
 		}
 	}
 
