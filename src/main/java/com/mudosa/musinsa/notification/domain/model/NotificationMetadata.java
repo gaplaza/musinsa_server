@@ -32,6 +32,10 @@ public class NotificationMetadata extends BaseEntity {
     
     @Column(name = "link_url", length = 2048)
     private String linkUrl;
+//  허승돈 작성
+    @Column(name = "notification_category", nullable = false, length = 50)
+    private String notificationCategory;
+//  허승돈 작성 종료
     
     /**
      * 알림 메타데이터 생성
@@ -40,13 +44,15 @@ public class NotificationMetadata extends BaseEntity {
         String notificationType,
         String title,
         String message,
-        String linkUrl
+        String linkUrl,
+        String notificationCategory
     ) {
         NotificationMetadata metadata = new NotificationMetadata();
         metadata.notificationType = notificationType;
         metadata.title = title;
         metadata.message = message;
         metadata.linkUrl = linkUrl;
+        metadata.notificationCategory = notificationCategory;
         return metadata;
     }
 }

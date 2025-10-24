@@ -25,18 +25,36 @@ public class Notification extends BaseEntity {
     
     @Column(name = "n_metadata_id", nullable = false)
     private Long nMetadataId; // NotificationMetadata 참조 (ID만)
-    
+
+//  허승돈 작성
+    @Column(name = "title", nullable = false, length = 200)
+    private String title;
+
+    @Column(name = "message", nullable = false, columnDefinition = "TEXT")
+    private String message;
+
+    @Column(name = "link_url", length = 2048)
+    private String linkUrl;
+//  허승돈 작성 종료
+
     @Column(name = "is_read", nullable = false)
     private Boolean isRead = false;
     
     /**
      * 알림 생성
      */
-    public static Notification create(Long userId, Long metadataId) {
+    public static Notification create(Long userId,
+                                      Long metadataId,
+                                      String title,
+                                      String message,
+                                      String linkUrl) {
         Notification notification = new Notification();
         notification.userId = userId;
         notification.nMetadataId = metadataId;
         notification.isRead = false;
+        notification.title = title;
+        notification.message = message;
+        notification.linkUrl = linkUrl;
         return notification;
     }
     
