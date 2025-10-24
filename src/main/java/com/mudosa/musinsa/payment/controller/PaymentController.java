@@ -1,5 +1,6 @@
 package com.mudosa.musinsa.payment.controller;
 
+import com.mudosa.musinsa.common.dto.ApiResponse;
 import com.mudosa.musinsa.payment.application.dto.PaymentConfirmRequest;
 import com.mudosa.musinsa.payment.application.dto.PaymentConfirmResponse;
 import com.mudosa.musinsa.payment.application.dto.TossPaymentConfirmRequest;
@@ -32,7 +33,7 @@ public class PaymentController {
 			summary = "결제 승인",
 			description = "결제 승인을 요청합니다. 결제창에서 결제 인증 완료 후 호출해야 합니다.")
 	@PostMapping("/confirm")
-	public ResponseEntity<PaymentConfirmResponse> confirmPayment(
+	public ResponseEntity<ApiResponse<PaymentConfirmResponse>> confirmPayment(
 			@Valid @RequestBody PaymentConfirmRequest request) {
 
 		log.info("[Payment] 결제 승인 요청 - orderId: {}", request.getOrderId());
@@ -43,6 +44,6 @@ public class PaymentController {
 				response.getOrderId(), 
 				response.getStatus());
 
-		return ResponseEntity.ok(response);
+		return ResponseEntity.ok(ApiResponse.success(response));
 	}
 }
