@@ -1,92 +1,79 @@
 package com.mudosa.musinsa.product.domain.model;
 
 import com.mudosa.musinsa.common.domain.model.BaseEntity;
+import com.mudosa.musinsa.product.domain.vo.ProductPrice;
 import jakarta.persistence.*;
+
+import java.util.ArrayList;
+import java.util.List;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.List;
-
-/**
- * 상품 옵션 엔티티
- * Product 애그리거트 내부
- * 
- * 특정 옵션 조합의 가격을 나타냅니다.
- * 예: 사이즈(270) + 색상(블랙) = 150,000원
- */
 @Entity
-@Table(
-    name = "product_option",
-    indexes = {
-        @Index(name = "idx_prodopt_product_id", columnList = "product_id")
-    }
-)
+@Table(name = "product_option", indexes = {
+    @Index(name = "idx_prodopt_product_id", columnList = "product_id"),
+    @Index(name = "idx_prodopt_price", columnList = "product_price")
+})
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class ProductOption extends BaseEntity {
-    
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "product_option_id")
-    private Long id;
-    
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "product_id", nullable = false)
-    private Product product;
-    
-    @Column(name = "product_price", nullable = false, precision = 10, scale = 2)
-    private BigDecimal productPrice;
-    
-    /**
-     * 이 상품 옵션을 구성하는 옵션값들과의 매핑
-     * 예: [사이즈:270, 색상:블랙]
-     */
+    private Long productOptionId;
+
+    @Column(name = "product_id", nullable = false)  // FK (Product 도메인)
+    private Long productId;
+
+    @Embedded
+    private ProductPrice productPrice;
+
     @OneToMany(mappedBy = "productOption", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<ProductValueOptionMapping> optionValueMappings = new ArrayList<>();
-    
-    /**
-     * 상품 옵션 생성
-     */
-    public static ProductOption create(BigDecimal price) {
-        ProductOption option = new ProductOption();
-        option.productPrice = price;
-        return option;
+    private List<ProductValueOptionMapping> productValueOptionMappings = new ArrayList<>();
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "product_id", insertable = false, updatable = false)  
+    private Product product;
+
+    // 아직 구현되지 않은 엔티티들은 주석 처리 (재고관리)
+    // @OneToMany(mappedBy = "productOption", cascade = CascadeType.ALL, orphanRemoval = true)
+    // private List<Inventory> inventories = new ArrayList<>();
+
+    // 생성 메서드
+    public static ProductOption create(Long productId, ProductPrice productPrice) {
+        return new ProductOption(productId, productPrice);
     }
-    
-    /**
-     * Product 할당 (Package Private)
-     */
-    void assignProduct(Product product) {
-        this.product = product;
+
+    // 비즈니스 메서드
+    public void updatePrice(ProductPrice productPrice) {
+        this.productPrice = productPrice;
     }
-    
-    /**
-     * 옵션값 매핑 추가
-     */
-    public void addOptionValueMapping(OptionValue optionValue) {
-        ProductValueOptionMapping mapping = ProductValueOptionMapping.create(this, optionValue);
-        this.optionValueMappings.add(mapping);
+
+    public void updateProduct(Long productId) {
+        this.productId = productId;
     }
-    
-    /**
-     * 가격 변경
-     */
-    public void updatePrice(BigDecimal newPrice) {
-        this.productPrice = newPrice;
+
+    // 연관관계 메서드 - ProductValueOptionMapping 연결
+    public void addProductValueOptionMapping(ProductValueOptionMapping mapping) {
+        productValueOptionMappings.add(mapping);
     }
-    
-    /**
-     * 옵션 설명 생성 (옵션값들을 조합)
-     * 예: "사이즈: 270, 색상: 블랙"
-     */
-    public String getOptionDescription() {
-        return optionValueMappings.stream()
-            .map(mapping -> mapping.getOptionValue().getOptionName().getOptionName() + 
-                          ": " + mapping.getOptionValue().getOptionValue())
-            .reduce((a, b) -> a + ", " + b)
-            .orElse("");
+
+    public void removeProductValueOptionMapping(ProductValueOptionMapping mapping) {
+        productValueOptionMappings.remove(mapping);
+    }
+
+    // 아직 구현되지 않은 엔티티들은 주석 처리
+    /*
+    public void addInventory(Inventory inventory) {
+        inventories.add(inventory);
+    }
+    */
+
+    // JPA를 위한 protected 생성자
+    protected ProductOption(Long productId, ProductPrice productPrice) {
+        this.productId = productId;
+        this.productPrice = productPrice;
     }
 }
