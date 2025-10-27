@@ -1,12 +1,12 @@
 package com.mudosa.musinsa.domain.chat.dto;
 
+import com.mudosa.musinsa.domain.chat.enums.ChatRoomType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
 /**
  * 채팅방 정보 DTO
@@ -15,11 +15,11 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class ChatRoomResponse {
+public class ChatRoomInfoResponse {
   private Long chatId;
   private Long brandId;
-  private String type;
+  private String brandNameKo;
+  private ChatRoomType type;
+  private Long partNum;
   private LocalDateTime lastMessageAt;
-  private List<ChatPartResponse> participants;
-  private MessageResponse lastMessage;
 }
