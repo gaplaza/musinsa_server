@@ -25,8 +25,9 @@ spring:
   jpa:
     hibernate:
       ddl-auto: none  # 일단 스키마 완벽해질 때까지만 검증 작업 안함
-      naming:
-        physical-strategy: org.hibernate.boot.model.naming.CamelCaseToUnderscoresNamingStrategy
+#      naming:
+#        physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
+#        implicit-strategy: org.hibernate.boot.model.naming.ImplicitNamingStrategyLegacyJpaImpl
     show-sql: true  # SQL 콘솔 출력
     properties:
       hibernate:
