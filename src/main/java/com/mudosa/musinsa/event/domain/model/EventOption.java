@@ -1,6 +1,7 @@
 package com.mudosa.musinsa.event.domain.model;
 
 import com.mudosa.musinsa.common.domain.BaseEntity;
+import com.mudosa.musinsa.product.domain.model.ProductOption;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -32,6 +33,7 @@ public class EventOption extends BaseEntity {
     private Long id;
 
     /** FK: event.event_id (소유측) */
+    // 지연 로딩 ?x
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "event_id", nullable = false)
     private Event event;

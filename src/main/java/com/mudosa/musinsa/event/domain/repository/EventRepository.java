@@ -6,6 +6,7 @@ import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
 import java.util.List;
+// 인터페이스로 만들기, jpa 생성 ?
 
 /**
  * Event Repository

@@ -1,3 +1,13 @@
+
+package com.mudosa.musinsa.event.domain.model;
+
+
+import com.mudosa.musinsa.common.domain.BaseEntity;
+import jakarta.persistence.*;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
 @Entity
 @Table(
         name = "event_image",
