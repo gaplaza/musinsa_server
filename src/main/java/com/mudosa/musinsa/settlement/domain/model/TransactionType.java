@@ -4,17 +4,14 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
 /**
- * 정산 상태
+ * 정산 거래 유형 (주문, 환불 등)
  */
 @Getter
 @RequiredArgsConstructor
-public enum SettlementStatus {
+public enum TransactionType {
 
-    PENDING("대기중"),
-    PROCESSING("처리중"),
-    COMPLETED("정산완료"),
-    FAILED("실패");
+    ORDER("주문"),
+    REFUND("환불");
 
     private final String description;
-
 }
