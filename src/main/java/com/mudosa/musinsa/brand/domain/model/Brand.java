@@ -6,7 +6,6 @@ import jakarta.transaction.Transactional;
 import lombok.*;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -46,20 +45,10 @@ public class Brand extends BaseEntity {
   @Column(name = "logo_url")
   private String logoUrl;
 
-  // DB 기본값 사용 (CURRENT_TIMESTAMP / ON UPDATE)
-  @Column(name = "created_at", nullable = false, insertable = false, updatable = false,
-      columnDefinition = "DATETIME DEFAULT CURRENT_TIMESTAMP")
-  private LocalDateTime createdAt;
-
-  @Column(name = "updated_at", nullable = false, insertable = false, updatable = false,
-      columnDefinition = "DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP")
-  private LocalDateTime updatedAt;
-
   /**
    * 브랜드 생성
    */
 
-  @Transactional
   public static Brand create(String nameKo, String nameEn, BigDecimal commissionRate) {
     Brand brand = new Brand();
     brand.nameKo = nameKo;
