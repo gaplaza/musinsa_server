@@ -36,7 +36,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
   public void configureMessageBroker(MessageBrokerRegistry config) {
     // Simple Broker 활성화 (개발용)
     // 프로덕션에서는 RabbitMQ, ActiveMQ 등 외부 브로커 사용 권장
-    config.enableSimpleBroker("/brand", "/qna");
+    config.enableSimpleBroker("/topic", "/qna");
 
     // 클라이언트가 메시지를 보낼 때 사용할 prefix
     config.setApplicationDestinationPrefixes("/app");
