@@ -8,68 +8,77 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 
-/**
- * 이벤트 옵션 엔티티
- * Event 애그리거트 내부
- */
 @Entity
-@Table(name = "event_option")
+@Table(
+        name = "event_option",
+        uniqueConstraints = {
+                // DDL: UNIQUE KEY `uk_event_product_option` (`event_id`, `product_option_id`)
+                @UniqueConstraint(name = "uk_event_product_option", columnNames = {"event_id", "product_option_id"})
+        },
+        indexes = {
+                // DDL: INDEX `idx_evtopt_event` (`event_id`)
+                @Index(name = "idx_evtopt_event", columnList = "event_id"),
+                // DDL: INDEX `idx_evtopt_popt` (`product_option_id`)
+                @Index(name = "idx_evtopt_popt", columnList = "product_option_id")
+        }
+)
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class EventOption extends BaseEntity {
-    
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "event_option_id")
     private Long id;
-    
-    @ManyToOne(fetch = FetchType.LAZY)
+
+    /** FK: event.event_id (소유측) */
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "event_id", nullable = false)
     private Event event;
-    
-    @Column(name = "product_option_id", nullable = false)
-    private Long productOptionId; // ProductOption 참조 (ID만)
-    
-    @Column(name = "event_stock_quantity")
-    private Integer eventStockQuantity;
-    
+
+    /** FK: product_option.product_option_id (소유측) */
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "product_option_id", nullable = false)
+    private ProductOption productOption;
+
+    /**
+     * DDL: DECIMAL(10,2) NULL
+     * - null이면 "일반 가격 사용" 의미 (비즈니스 규칙)
+     */
     @Column(name = "event_price", precision = 10, scale = 2)
     private BigDecimal eventPrice;
-    
-    @Column(name = "discount_rate", precision = 5, scale = 2)
-    private BigDecimal discountRate;
-    
-    /**
-     * 이벤트 옵션 생성
-     */
-    public static EventOption create(
-        Long productOptionId,
-        Integer stockQuantity,
-        BigDecimal eventPrice,
-        BigDecimal discountRate
-    ) {
-        EventOption option = new EventOption();
-        option.productOptionId = productOptionId;
-        option.eventStockQuantity = stockQuantity;
-        option.eventPrice = eventPrice;
-        option.discountRate = discountRate;
-        return option;
+
+    /** DDL: INT NOT NULL DEFAULT 0 */
+    @Column(name = "event_stock", nullable = false)
+    private Integer eventStock = 0;
+
+    /** 생성 팩토리 */
+    public static EventOption create(Event event,
+                                     ProductOption productOption,
+                                     BigDecimal eventPrice,
+                                     Integer eventStock) {
+        EventOption eo = new EventOption();
+        eo.event = event;
+        eo.productOption = productOption;
+        eo.eventPrice = eventPrice;       // null 허용(일반 가격 의미)
+        eo.eventStock = (eventStock != null ? eventStock : 0);
+        return eo;
     }
-    
-    /**
-     * Event 할당 (Package Private)
-     */
+
+    /** Event 편의 메서드에서 호출 (Event.addEventOption) */
     void assignEvent(Event event) {
         this.event = event;
     }
-    
-    /**
-     * 재고 차감
-     */
-    public void decreaseStock(int quantity) {
-        if (this.eventStockQuantity < quantity) {
+
+    /** 재고 증감 유틸 (선택) */
+    public void increaseStock(int qty) {
+        this.eventStock += qty;
+    }
+    public void decreaseStock(int qty) {
+        int next = this.eventStock - qty;
+        if (next < 0) {
             throw new IllegalStateException("이벤트 재고가 부족합니다.");
         }
-        this.eventStockQuantity -= quantity;
+        this.eventStock = next;
     }
 }
