@@ -45,7 +45,7 @@ public class ProductValueOptionMapping {
         );
     }
     
-    // 도메인 로직: 수정
+    // 도메인 로직: 정보 수정
     public void modify(ProductOption productOption, OptionValue optionValue, OptionName optionName) {
         if (productOption != null) {
             this.productOption = productOption;
@@ -59,6 +59,21 @@ public class ProductValueOptionMapping {
             this.optionName = optionName;
             this.id.optionNameId = optionName.getOptionNameId();
         }
+    }
+    
+    // 도메인 로직: 상품 옵션 여부 확인
+    public boolean belongsToProductOption(ProductOption productOption) {
+        return this.productOption != null && this.productOption.equals(productOption);
+    }
+    
+    // 도메인 로직: 옵션 값 여부 확인
+    public boolean belongsToOptionValue(OptionValue optionValue) {
+        return this.optionValue != null && this.optionValue.equals(optionValue);
+    }
+    
+    // 도메인 로직: 옵션 이름 여부 확인
+    public boolean belongsToOptionName(OptionName optionName) {
+        return this.optionName != null && this.optionName.equals(optionName);
     }
     
     @Embeddable

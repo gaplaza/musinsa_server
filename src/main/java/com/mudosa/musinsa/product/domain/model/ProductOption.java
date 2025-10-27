@@ -23,7 +23,7 @@ public class ProductOption extends BaseEntity {
     private Long productOptionId;
     
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "product_id", nullable = false, foreignKey = @ForeignKey(name = "fk_product_option_product"))
+    @JoinColumn(name = "product_id", nullable = false)
     private Product product;
     
     @Embedded
@@ -39,10 +39,30 @@ public class ProductOption extends BaseEntity {
         this.productPrice = productPrice;
     }
     
-    // 도메인 로직: 통합 수정
+    // 도메인 로직: 정보 수정
     public void modify(Money productPrice) {
-        if (productPrice != null) {
-            this.productPrice = productPrice;
+        if (productPrice != null) this.productPrice = productPrice;
+    }
+    
+    // 도메인 로직: 상품 변경
+    public void changeProduct(Product product) {
+        if (product != null) this.product = product;
+    }
+    
+    // 도메인 로직: 가격 변경
+    public void changePrice(Money productPrice) {
+        if (productPrice != null) this.productPrice = productPrice;
+    }
+    
+    // 도메인 로직: 특정 상품의 옵션 여부 확인
+    public boolean belongsToProduct(Product product) {
+        return this.product != null && this.product.equals(product);
+    }
+    
+    // 도메인 로직: 옵션 값 매핑 추가
+    public void addValueMapping(ProductValueOptionMapping mapping) {
+        if (mapping != null) {
+            this.productValueOptionMappings.add(mapping);
         }
     }
 }

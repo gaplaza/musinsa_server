@@ -21,37 +21,43 @@ public class ProductCategory {
     @MapsId("productId")
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "product_id")
-    private Product productId;
+    private Product product;
     
     @MapsId("categoryId")
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id")
-    private Category categoryId;
+    private Category category;
     
     @Builder
-    public ProductCategory(Product productId, Category categoryId) {
-        this.productId = productId;
-        this.categoryId = categoryId;
+    public ProductCategory(Product product, Category category) {
+        this.product = product;
+        this.category = category;
         this.id = new ProductCategoryId(
-            productId.getProductId(),
-            categoryId.getCategoryId()
+            product.getProductId(),
+            category.getCategoryId()
         );
     }
     
-    /**
-     * 상품-카테고리 매핑 정보 수정
-     * @param product 수정할 상품
-     * @param category 수정할 카테고리
-     */
-    public void modify(Product productId, Category categoryId) {
-        if (productId != null) {
-            this.productId = productId;
-            this.id.productId = productId.getProductId();
+    // 도메인 로직: 상품-카테고리 매핑 정보 수정
+    public void modify(Product product, Category category) {
+        if (product != null) {
+            this.product = product;
+            this.id.productId = product.getProductId();
         }
-        if (categoryId != null) {
-            this.categoryId = categoryId;
-            this.id.categoryId = categoryId.getCategoryId();
+        if (category != null) {
+            this.category = category;
+            this.id.categoryId = category.getCategoryId();
         }
+    }
+    
+    // 도메인 로직: 특정 상품의 카테고리 여부 확인
+    public boolean belongsToProduct(Product product) {
+        return this.product != null && this.product.equals(product);
+    }
+    
+    // 도메인 로직: 특정 카테고리의 상품 여부 확인
+    public boolean belongsToCategory(Category category) {
+        return this.category != null && this.category.equals(category);
     }
     
     @Embeddable
