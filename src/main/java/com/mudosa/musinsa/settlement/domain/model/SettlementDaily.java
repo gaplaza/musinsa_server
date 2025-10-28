@@ -13,9 +13,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 
-/**
- * 일일 정산 집계 애그리거트 루트
- */
+
 @Entity
 @Table(
     name = "settlements_daily",

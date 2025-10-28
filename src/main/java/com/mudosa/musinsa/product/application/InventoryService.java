@@ -25,13 +25,6 @@ public class InventoryService {
 
     private final InventoryRepository inventoryRepository;
 
-    /**
-     * 재고 차감 (비관적 락)
-     * 
-     * @param productOptionId 상품 옵션 ID
-     * @param quantity 차감 수량
-     * @throws BusinessException INVENTORY_NOT_FOUND, INSUFFICIENT_STOCK
-     */
     @Transactional(propagation = Propagation.MANDATORY)
     public void deduct(Long productOptionId, Integer quantity) {
         log.info("재고 차감 시작 - productOptionId: {}, quantity: {}", 
@@ -56,13 +49,6 @@ public class InventoryService {
         }
     }
 
-    /**
-     * 재고 복구
-     * 
-     * @param productOptionId 상품 옵션 ID
-     * @param quantity 복구 수량
-     * @throws BusinessException INVENTORY_NOT_FOUND
-     */
     @Transactional(propagation = Propagation.MANDATORY)
     public void restore(Long productOptionId, Integer quantity) {
         log.info("재고 복구 시작 - productOptionId: {}, quantity: {}", 

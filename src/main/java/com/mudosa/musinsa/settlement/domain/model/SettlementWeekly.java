@@ -15,9 +15,6 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.temporal.IsoFields;
 
-/**
- * 주간 정산 집계 애그리거트 루트
- */
 @Entity
 @Table(
     name = "settlements_weekly",
