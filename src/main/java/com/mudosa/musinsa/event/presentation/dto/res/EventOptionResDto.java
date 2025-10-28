@@ -1,6 +1,6 @@
-package com.mudosa.musinsa.event.domain.dto;
+package com.mudosa.musinsa.event.presentation.dto.res;
 
-import com.mudosa.musinsa.event.domain.model.EventOption;
+import com.mudosa.musinsa.event.model.EventOption;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
