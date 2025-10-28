@@ -26,7 +26,7 @@ public class Product extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "brand_id", nullable = false)
     private Brand brand;
-    
+
     @Column(name = "product_name", nullable = false, length = 100)
     private String productName;
     
@@ -39,37 +39,38 @@ public class Product extends BaseEntity {
     @Embedded
     @AttributeOverride(name = "value", column = @Column(name = "product_gender_type", nullable = false))
     private ProductGenderType productGenderType;
-    
-    // 비정규화 브랜드이름 (조회)
+
+    // 역정규화 브랜드이름 (조회)
     @Column(name = "brand_name", nullable = false, length = 100)
     private String brandName; 
-    
+
+    // 역정규화: "상의/티셔츠"
     @Column(name = "category_path", nullable = false, length = 255)
     private String categoryPath;
-    
 
     
     /**
      * 상품 생성 (Builder 패턴)
      */
-    @Builder
-    public Product(Brand brand, String productName, String productInfo, 
-                 ProductGenderType productGenderType, String brandName, String categoryPath) {
+   @Builder
+    public Product(Brand brand, String productName, String productInfo,
+                   ProductGenderType productGenderType, String brandName, String categoryPath, Boolean isAvailable) {
         this.brand = brand;
         this.productName = productName;
         this.productInfo = productInfo;
-        this.isAvailable = true;
         this.productGenderType = productGenderType;
         this.brandName = brandName;
         this.categoryPath = categoryPath;
+        this.isAvailable = isAvailable;
     }
     
     // 도메인 로직: 정보 수정
     public void modify(String productName, String productInfo, 
-                    ProductGenderType productGenderType, Boolean isAvailable) {
+                    ProductGenderType productGenderType, String categoryPath ,Boolean isAvailable) {
         if (productName != null) this.productName = productName;
         if (productInfo != null) this.productInfo = productInfo;
         if (productGenderType != null) this.productGenderType = productGenderType;
+        if (categoryPath != null) this.categoryPath = categoryPath;
         if (isAvailable != null) this.isAvailable = isAvailable;
     }
     
@@ -86,7 +87,9 @@ public class Product extends BaseEntity {
     
     // 도메인 로직: 카테고리 경로 변경
     public void changeCategoryPath(String categoryPath) {
-        if (categoryPath != null) this.categoryPath = categoryPath;
+        if (categoryPath != null) {
+            this.categoryPath = categoryPath;
+        }
     }
     
     // 도메인 로직: 판매 가능 여부 확인

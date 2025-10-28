@@ -28,10 +28,6 @@ public class Category extends BaseEntity {
     @Column(name = "category_name", nullable = false, length = 100)
     private String categoryName;
     
-    // 카테고리 깊이는 1 또는 2
-    @Column(name = "category_depth", nullable = false)
-    private Byte categoryDepth;
-    
     @Column(name = "image_url", length = 2048)
     private String imageUrl;
     
@@ -48,17 +44,23 @@ public class Category extends BaseEntity {
      * 카테고리 생성 (Builder 패턴)
      */
     @Builder
-    public Category(String categoryName, Byte categoryDepth, Category parent, String imageUrl) {
+    public Category(String categoryName, Category parent, String imageUrl) {
         this.categoryName = categoryName;
-        this.categoryDepth = categoryDepth;
         this.parent = parent;
         this.imageUrl = imageUrl;
     }
+
+    // 도메인 로직: 경로 생성 (재귀)
+    public String buildPath() {
+        if (parent == null) {
+            return categoryName;  // 부모: "상의"
+        }
+        return parent.buildPath() + "/" + categoryName;  // 자식: "상의/티셔츠"
+    }
     
     // 도메인 로직: 정보 수정
-    public void modify(String categoryName, Byte categoryDepth, String imageUrl) {
+    public void modify(String categoryName, String imageUrl) {
         if (categoryName != null) this.categoryName = categoryName;
-        if (categoryDepth != null) this.categoryDepth = categoryDepth;
         if (imageUrl != null) this.imageUrl = imageUrl;
     }
     

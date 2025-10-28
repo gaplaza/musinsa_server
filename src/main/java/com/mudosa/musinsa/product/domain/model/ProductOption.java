@@ -35,7 +35,7 @@ public class ProductOption extends BaseEntity {
     private Money productPrice;
     
     @OneToMany(mappedBy = "productOption", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<ProductValueOptionMapping> productValueOptionMappings = new ArrayList<>();
+    private List<ProductOptionValue> productOptionValue = new ArrayList<>();
     
     @Builder
     public ProductOption(Product product, Money productPrice) {
@@ -64,9 +64,9 @@ public class ProductOption extends BaseEntity {
     }
     
     // 도메인 로직: 옵션 값 매핑 추가
-    public void addValueMapping(ProductValueOptionMapping mapping) {
+    public void addValue(ProductOptionValue mapping) {
         if (mapping != null) {
-            this.productValueOptionMappings.add(mapping);
+            this.productOptionValue.add(mapping);
             mapping.assignProductOption(this);
         }
     }
