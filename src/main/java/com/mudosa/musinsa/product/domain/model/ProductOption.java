@@ -63,6 +63,7 @@ public class ProductOption extends BaseEntity {
     public void addValueMapping(ProductValueOptionMapping mapping) {
         if (mapping != null) {
             this.productValueOptionMappings.add(mapping);
+            mapping.assignProductOption(this);
         }
     }
 }

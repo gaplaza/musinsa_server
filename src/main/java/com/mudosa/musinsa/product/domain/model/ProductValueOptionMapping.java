@@ -76,6 +76,14 @@ public class ProductValueOptionMapping {
         return this.optionName != null && this.optionName.equals(optionName);
     }
     
+    // 도메인 로직: ProductOption 양방향 연관관계 설정
+    public void assignProductOption(ProductOption productOption) {
+        if (productOption != null && !productOption.equals(this.productOption)) {
+            this.productOption = productOption;
+            this.id.productOptionId = productOption.getProductOptionId();
+        }
+    }
+    
     @Embeddable
     @NoArgsConstructor(access = AccessLevel.PROTECTED)
     @Getter
