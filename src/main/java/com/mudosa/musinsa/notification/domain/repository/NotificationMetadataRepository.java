@@ -4,14 +4,17 @@ import com.mudosa.musinsa.notification.domain.model.NotificationMetadata;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-import java.math.BigInteger;
 import java.util.List;
 
 /**
  * NotificationMetadata Repository
  */
 @Repository
-public interface NotificationMetadataRepository extends JpaRepository<NotificationMetadata, BigInteger> {
+public interface NotificationMetadataRepository extends JpaRepository<NotificationMetadata, Long> {
     
     List<NotificationMetadata> findByNotificationType(String notificationType);
+
+    NotificationMetadata findByNotificationCategory(String notificationCategory);
+
+    void deleteById(Long id);
 }
