@@ -33,12 +33,12 @@ public class BrandService {
     // 채팅방 생성
     log.info("request: " + request.toString());
     Brand brand = Brand.builder()
-            .nameKo(request.getNameKo())
-            .nameEn(request.getNameEn())
-            .logoUrl(logoUrl)
-            .commissionRate(request.getCommissionRate())
-            .status(BrandStatus.ACTIVE)
-            .build();
+        .nameKo(request.getNameKo())
+        .nameEn(request.getNameEn())
+        .logoUrl(logoUrl)
+        .commissionRate(request.getCommissionRate())
+        .status(BrandStatus.ACTIVE)
+        .build();
 
 
     brand = brandRepository.save(brand);
