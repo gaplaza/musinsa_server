@@ -1,6 +1,6 @@
-package com.mudosa.musinsa.event.domain.repository;
+package com.mudosa.musinsa.event.repository;
 
-import com.mudosa.musinsa.event.domain.model.Event;
+import com.mudosa.musinsa.event.model.Event;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
