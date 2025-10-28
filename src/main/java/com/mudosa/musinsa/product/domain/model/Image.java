@@ -21,7 +21,7 @@ public class Image extends BaseEntity {
     private Long imageId;
     
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "product_id")
+    @JoinColumn(name = "product_id", nullable = false)
     private Product product;
     
     @ManyToOne(fetch = FetchType.LAZY)
@@ -36,33 +36,23 @@ public class Image extends BaseEntity {
     
     @Builder
     public Image(Product product, Event event, String imageUrl, Boolean isThumbnail) {
+        // 엔티티 기본 무결성 검증
+        if (product == null) {
+            throw new IllegalArgumentException("상품은 이미지에 필수입니다.");
+        }
+        if (imageUrl == null || imageUrl.trim().isEmpty()) {
+            throw new IllegalArgumentException("이미지 URL은 필수입니다.");
+        }
+        
         this.product = product;
         this.event = event;
         this.imageUrl = imageUrl;
         this.isThumbnail = isThumbnail != null ? isThumbnail : false;
     }
-    
-    // 도메인 로직: 통합 수정
-    public void modify(Product product, Event event, String imageUrl, Boolean isThumbnail) {
-        if (product != null) this.product = product;
-        if (event != null) this.event = event;
-        if (imageUrl != null) this.imageUrl = imageUrl;
-        if (isThumbnail != null) this.isThumbnail = isThumbnail;
-    }
-    
-    // 도메인 로직: 썸네일 여부 확인
-    public boolean isThumbnailImage() {
-        return Boolean.TRUE.equals(this.isThumbnail);
-    }
-    
-    // 도메인 로직: 상품 이미지 여부 확인
-    public boolean isProductImage() {
-        return this.product != null;
-    }
-    
-    // 도메인 로직: 이벤트 이미지 여부 확인
-    public boolean isEventImage() {
-        return this.event != null;
+
+    // 패키지 private: 상품 참조 설정 (Product 애그리거트에서만 사용)
+    void setProduct(Product product) {
+        this.product = product;
     }
 
 }

@@ -28,8 +28,15 @@ public class Inventory extends BaseEntity {
 
     @Builder
     public Inventory(StockQuantity stockQuantity, Boolean isAvailable) {
+        // 엔티티 기본 무결성 검증
+        if (stockQuantity == null) {
+            throw new IllegalArgumentException("재고 수량은 필수입니다.");
+        }
+        
         this.stockQuantity = stockQuantity;
-        this.isAvailable = isAvailable;
+        // 재고가 0이면 무조건 unavailable, 재고가 있으면 지정된 값 또는 true
+        this.isAvailable = stockQuantity.getValue() > 0 ? 
+            Boolean.TRUE.equals(isAvailable) : false;
     }
 
     public void decrease(int quantity) {

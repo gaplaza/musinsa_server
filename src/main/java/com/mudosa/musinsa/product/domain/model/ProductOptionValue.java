@@ -74,64 +74,17 @@ public class ProductOptionValue {
 
     @Builder
     public ProductOptionValue(ProductOption productOption, OptionValue optionValue) {
+        // 엔티티 기본 무결성 검증
+        if (productOption == null) {
+            throw new IllegalArgumentException("상품 옵션은 필수입니다.");
+        }
+        if (optionValue == null) {
+            throw new IllegalArgumentException("옵션 값은 필수입니다.");
+        }
+        
         this.productOption = productOption;
         this.optionValue = optionValue;
-        this.id = new ProductOptionValueId(
-            productOption.getProductOptionId(),
-            optionValue.getOptionValueId()
-        );
+        this.id = new ProductOptionValueId(productOption.getProductOptionId(), optionValue.getOptionValueId());
     }
-    
-    // 도메인 로직: 정보 수정
-    public void modify(ProductOption productOption, OptionValue optionValue) {
-        if (productOption != null) {
-            this.productOption = productOption;
-            this.id.productOptionId = productOption.getProductOptionId();
-        }
-        if (optionValue != null) {
-            this.optionValue = optionValue;
-            this.id.optionValueId = optionValue.getOptionValueId();
-        }
-    }
-    
-    // 도메인 로직: 상품 옵션 여부 확인
-    public boolean belongsToProductOption(ProductOption productOption) {
-        return this.productOption != null && this.productOption.equals(productOption);
-    }
-    
-    // 도메인 로직: 옵션 값 여부 확인
-    public boolean belongsToOptionValue(OptionValue optionValue) {
-        return this.optionValue != null && this.optionValue.equals(optionValue);
-    }
-    
-    // 도메인 로직: 옵션 이름 여부 확인 (OptionValue를 통해 확인)
-    public boolean belongsToOptionName(OptionName optionName) {
-        return this.optionValue != null && this.optionValue.belongsTo(optionName);
-    }
-    
-    // 도메인 로직: ProductOption 양방향 연관관계 설정
-    public void assignProductOption(ProductOption productOption) {
-        if (productOption != null && !productOption.equals(this.productOption)) {
-            this.productOption = productOption;
-            this.id.productOptionId = productOption.getProductOptionId();
-        }
-    }
-    
-    // 편의 메서드: 옵션명 얻기
-    public String getOptionName() {
-        return optionValue != null && optionValue.getOptionName() != null 
-               ? optionValue.getOptionName().getOptionName() 
-               : null;
-    }
-    
-    // 편의 메서드: 옵션값 얻기
-    public String getOptionValue() {
-        return optionValue != null ? optionValue.getOptionValue() : null;
-    }
-    
-    // 도메인 로직: 동일한 옵션명을 가진 매핑인지 확인
-    public boolean hasSameOptionName(ProductOptionValue other) {
-        if (other == null) return false;
-        return Objects.equals(this.getOptionName(), other.getOptionName());
-    }
+
 }

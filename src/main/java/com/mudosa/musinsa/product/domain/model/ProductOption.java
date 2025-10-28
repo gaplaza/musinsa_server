@@ -38,48 +38,26 @@ public class ProductOption extends BaseEntity {
     private List<ProductOptionValue> productOptionValue = new ArrayList<>();
     
     @Builder
-    public ProductOption(Product product, Money productPrice) {
+    public ProductOption(Product product, Money productPrice, Inventory inventory) {
+        // 엔티티 기본 무결성 검증
+        if (product == null) {
+            throw new IllegalArgumentException("상품은 옵션에 필수입니다.");
+        }
+        if (productPrice == null || productPrice.isLessThanOrEqual(Money.ZERO)) {
+            throw new IllegalArgumentException("상품 가격은 0원보다 커야 합니다.");
+        }
+        if (inventory == null) {
+            throw new IllegalArgumentException("재고 정보는 옵션에 필수입니다.");
+        }
+        
         this.product = product;
         this.productPrice = productPrice;
+        this.inventory = inventory;
     }
     
-    // 도메인 로직: 정보 수정
-    public void modify(Money productPrice) {
-        if (productPrice != null) this.productPrice = productPrice;
-    }
-    
-    // 도메인 로직: 상품 변경
-    public void changeProduct(Product product) {
-        if (product != null) this.product = product;
-    }
-    
-    // 도메인 로직: 가격 변경
-    public void changePrice(Money productPrice) {
-        if (productPrice != null) this.productPrice = productPrice;
-    }
-    
-    // 도메인 로직: 특정 상품의 옵션 여부 확인
-    public boolean belongsToProduct(Product product) {
-        return this.product != null && this.product.equals(product);
-    }
-    
-    // 도메인 로직: 옵션 값 매핑 추가
-    public void addValue(ProductOptionValue mapping) {
-        if (mapping != null) {
-            this.productOptionValue.add(mapping);
-            mapping.assignProductOption(this);
-        }
+    // 패키지 private: 상품 참조 설정 (Product 애그리거트에서만 사용)
+    void setProduct(Product product) {
+        this.product = product;
     }
 
-    // public  boolean isStockEnough(String[] args) {
-    //     //validate1
-
-
-
-    //     //vad2
-
-
-
-    //     inventory.getStockQuantity().isvalid();
-    // }
 }

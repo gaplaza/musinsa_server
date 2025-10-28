@@ -31,12 +31,17 @@ public class ProductCategory {
     
     @Builder
     public ProductCategory(Product product, Category category) {
+        // 엔티티 기본 무결성 검증
+        if (product == null) {
+            throw new IllegalArgumentException("상품은 필수입니다.");
+        }
+        if (category == null) {
+            throw new IllegalArgumentException("카테고리는 필수입니다.");
+        }
+        
         this.product = product;
         this.category = category;
-        this.id = new ProductCategoryId(
-            product.getProductId(),
-            category.getCategoryId()
-        );
+        this.id = new ProductCategoryId(product.getProductId(), category.getCategoryId());
     }
     
     @Embeddable

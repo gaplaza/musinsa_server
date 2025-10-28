@@ -45,6 +45,11 @@ public class Category extends BaseEntity {
      */
     @Builder
     public Category(String categoryName, Category parent, String imageUrl) {
+        // 엔티티 기본 무결성 검증
+        if (categoryName == null || categoryName.trim().isEmpty()) {
+            throw new IllegalArgumentException("카테고리명은 필수입니다.");
+        }
+        
         this.categoryName = categoryName;
         this.parent = parent;
         this.imageUrl = imageUrl;
@@ -58,17 +63,6 @@ public class Category extends BaseEntity {
         return parent.buildPath() + "/" + categoryName;  // 자식: "상의/티셔츠"
     }
     
-    // 도메인 로직: 정보 수정
-    public void modify(String categoryName, String imageUrl) {
-        if (categoryName != null) this.categoryName = categoryName;
-        if (imageUrl != null) this.imageUrl = imageUrl;
-    }
-    
-    // 도메인 로직: 부모 카테고리 변경
-    public void changeParent(Category parent) {
-        if (parent != null) this.parent = parent;
-    }
-    
     // 도메인 로직: 하위 카테고리 여부 확인
     public boolean hasParent() {
         return this.parent != null;
@@ -78,10 +72,5 @@ public class Category extends BaseEntity {
     public boolean isRoot() {
         return this.parent == null;
     }
-    
-    // 도메인 로직: 자식 카테고리 추가
-    public void addChild(Category child) {
-        children.add(child);
-        child.parent = this;  // 자식의 부모 설정
-    }
+
 }
