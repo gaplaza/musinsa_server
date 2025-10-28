@@ -1,6 +1,7 @@
 package com.mudosa.musinsa.product.domain.model;
 
 import com.mudosa.musinsa.common.domain.model.BaseEntity;
+import com.mudosa.musinsa.user.domain.model.User;
 import com.mudosa.musinsa.common.vo.Money;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -18,6 +19,10 @@ public class CartItem extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "cart_item_id")
     private Long cartItemId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "cart_id", nullable = false)
@@ -27,10 +32,6 @@ public class CartItem extends BaseEntity {
     @JoinColumn(name = "product_option_id", nullable = false)
     private ProductOption productOption;
     
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "image_id", nullable = false)
-    private Image image;
-    
     @Column(name = "quantity", nullable = false)
     private Integer quantity;
     
@@ -39,18 +40,16 @@ public class CartItem extends BaseEntity {
     private Money unitPrice;
     
     @Builder
-    public CartItem(Cart cart, ProductOption productOption, Image image, Integer quantity, Money unitPrice) {
+    public CartItem(Cart cart, ProductOption productOption, Integer quantity, Money unitPrice) {
         this.cart = cart;
         this.productOption = productOption;
-        this.image = image;
         this.quantity = quantity;
         this.unitPrice = unitPrice;
     }
     
     // 도메인 로직: 정보 수정
-    public void modify(ProductOption productOption, Image image, Integer quantity, Money unitPrice) {
+    public void modify(ProductOption productOption, Integer quantity, Money unitPrice) {
         if (productOption != null) this.productOption = productOption;
-        if (image != null) this.image = image;
         if (quantity != null) this.quantity = quantity;
         if (unitPrice != null) this.unitPrice = unitPrice;
     }

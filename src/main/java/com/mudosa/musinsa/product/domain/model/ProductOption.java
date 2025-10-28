@@ -25,6 +25,10 @@ public class ProductOption extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "product_id", nullable = false)
     private Product product;
+
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "inventory_id", nullable = false, unique = true)
+    private Inventory inventory;
     
     @Embedded
     @AttributeOverride(name = "amount", column = @Column(name = "product_price", nullable = false, precision = 10, scale = 2))
@@ -66,4 +70,16 @@ public class ProductOption extends BaseEntity {
             mapping.assignProductOption(this);
         }
     }
+
+    // public  boolean isStockEnough(String[] args) {
+    //     //validate1
+
+
+
+    //     //vad2
+
+
+
+    //     inventory.getStockQuantity().isvalid();
+    // }
 }
