@@ -12,5 +12,11 @@ import java.util.List;
  */
 @Repository
 public interface EventRepository extends JpaRepository<Event, Long> {
-    
+
+    List<Event> findByIsActiveTrue();
+
+    List<Event> findByEventStartTimeBeforeAndEventEndTimeAfter(
+        LocalDateTime now1,
+        LocalDateTime now2
+    );
 }
