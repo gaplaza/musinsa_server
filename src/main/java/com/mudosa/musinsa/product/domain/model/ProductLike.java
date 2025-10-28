@@ -19,15 +19,35 @@ public class ProductLike extends BaseEntity {
     private Long productLikeId;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "product_id", nullable = false, foreignKey = @ForeignKey(name = "fk_product_option_product"))
-    private Product productId;
+    @JoinColumn(name = "product_id", nullable = false)
+    private Product product;
     
     @Column(name = "user_id", nullable = false)
     private Long userId;
     
     @Builder
-    public ProductLike(Product productId, Long userId) {
-        this.productId = productId;
+    public ProductLike(Product product, Long userId) {
+        this.product = product;
         this.userId = userId;
+    }
+    
+    // 도메인 로직: 상품 변경
+    public void changeProduct(Product product) {
+        if (product != null) this.product = product;
+    }
+    
+    // 도메인 로직: 사용자 변경
+    public void changeUser(Long userId) {
+        if (userId != null) this.userId = userId;
+    }
+    
+    // 도메인 로직: 특정 상품의 좋아요 여부 확인
+    public boolean belongsToProduct(Product product) {
+        return this.product != null && this.product.equals(product);
+    }
+    
+    // 도메인 로직: 특정 사용자의 좋아요 여부 확인
+    public boolean belongsToUser(Long userId) {
+        return this.userId != null && this.userId.equals(userId);
     }
 }

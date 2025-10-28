@@ -1,16 +1,17 @@
 package com.mudosa.musinsa.product.domain.model;
 
+import com.mudosa.musinsa.brand.domain.model.Brand;
 import com.mudosa.musinsa.common.domain.model.BaseEntity;
-import com.mudosa.musinsa.product.domain.vo.CategoryPath;
 import com.mudosa.musinsa.product.domain.vo.ProductGenderType;
-import com.mudosa.musinsa.product.domain.vo.ProductName;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-
+/**
+ * 상품 애그리거트 루트
+ */
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -22,12 +23,12 @@ public class Product extends BaseEntity {
     @Column(name = "product_id")
     private Long productId;
     
-    @Column(name = "brand_id", nullable = false)
-    private Long brandId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "brand_id", nullable = false)
+    private Brand brand;
     
-    @Embedded
-    @AttributeOverride(name = "value", column = @Column(name = "product_name", nullable = false, length = 100))
-    private ProductName productName;
+    @Column(name = "product_name", nullable = false, length = 100)
+    private String productName;
     
     @Column(name = "product_info", nullable = false, columnDefinition = "TEXT")
     private String productInfo;
@@ -43,29 +44,53 @@ public class Product extends BaseEntity {
     @Column(name = "brand_name", nullable = false, length = 100)
     private String brandName; 
     
-    @Embedded
-    @AttributeOverride(name = "value", column = @Column(name = "category_path", nullable = false, length = 255))
-    private CategoryPath categoryPath;
+    @Column(name = "category_path", nullable = false, length = 255)
+    private String categoryPath;
     
+
+    
+    /**
+     * 상품 생성 (Builder 패턴)
+     */
     @Builder
-    public Product(Long brandId, String productName, String productInfo, 
-                   Boolean isAvailable, ProductGenderType.Type genderType, 
-                   String brandName, String categoryPath) {
-        this.brandId = brandId;
-        this.productName = new ProductName(productName);
+    public Product(Brand brand, String productName, String productInfo, 
+                 ProductGenderType productGenderType, String brandName, String categoryPath) {
+        this.brand = brand;
+        this.productName = productName;
         this.productInfo = productInfo;
-        this.isAvailable = isAvailable != null ? isAvailable : true;
-        this.productGenderType = new ProductGenderType(genderType);
-        // 역정규화 필드: 생성 시점에 외부에서 받아서 저장
+        this.isAvailable = true;
+        this.productGenderType = productGenderType;
         this.brandName = brandName;
-        this.categoryPath = categoryPath != null ? new CategoryPath(categoryPath) : null;
+        this.categoryPath = categoryPath;
     }
     
-    // 도메인 로직: 수정 (역정규화 필드는 직접 수정 불가)
-    public void modify(String productName, String productInfo, ProductGenderType.Type genderType, Boolean isAvailable) {
-        if (productName != null) this.productName = new ProductName(productName);
+    // 도메인 로직: 정보 수정
+    public void modify(String productName, String productInfo, 
+                    ProductGenderType productGenderType, Boolean isAvailable) {
+        if (productName != null) this.productName = productName;
         if (productInfo != null) this.productInfo = productInfo;
-        if (genderType != null) this.productGenderType = new ProductGenderType(genderType);
+        if (productGenderType != null) this.productGenderType = productGenderType;
         if (isAvailable != null) this.isAvailable = isAvailable;
+    }
+    
+    // 도메인 로직: 판매 상태 변경
+    public void changeAvailableStatus(Boolean isAvailable) {
+        if (isAvailable != null) this.isAvailable = isAvailable;
+    }
+    
+    // 도메인 로직: 브랜드 정보 변경
+    public void changeBrand(Brand brand, String brandName) {
+        if (brand != null) this.brand = brand;
+        if (brandName != null) this.brandName = brandName;
+    }
+    
+    // 도메인 로직: 카테고리 경로 변경
+    public void changeCategoryPath(String categoryPath) {
+        if (categoryPath != null) this.categoryPath = categoryPath;
+    }
+    
+    // 도메인 로직: 판매 가능 여부 확인
+    public boolean isAvailable() {
+        return Boolean.TRUE.equals(this.isAvailable);
     }
 }

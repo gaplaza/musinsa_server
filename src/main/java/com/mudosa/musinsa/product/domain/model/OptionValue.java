@@ -1,7 +1,6 @@
 package com.mudosa.musinsa.product.domain.model;
 
 import com.mudosa.musinsa.common.domain.model.BaseEntity;
-import com.mudosa.musinsa.product.domain.vo.OptionValueVo;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -20,20 +19,30 @@ public class OptionValue extends BaseEntity {
     private Long optionValueId;
     
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "option_name_id", nullable = false, foreignKey = @ForeignKey(name = "fk_optionval_optnam"))
+    @JoinColumn(name = "option_name_id", nullable = false)
     private OptionName optionName;
     
     @Column(name = "option_value", nullable = false, length = 50)
-    private OptionValueVo optionValue;
+    private String optionValue;
     
     @Builder
-    public OptionValue(OptionName optionName, OptionValueVo optionValue) {
+    public OptionValue(OptionName optionName, String optionValue) {
         this.optionName = optionName;
         this.optionValue = optionValue;
     }
     
-    // 도메인 로직: 수정
-    public void modify(OptionValueVo optionValue) {
+    // 도메인 로직: 정보 수정
+    public void modify(String optionValue) {
         if (optionValue != null) this.optionValue = optionValue;
+    }
+    
+    // 도메인 로직: 옵션 값 유효성 확인
+    public boolean isValid() {
+        return this.optionValue != null && !this.optionValue.trim().isEmpty();
+    }
+    
+    // 도메인 로직: 옵션 이름과 연관된 값인지 확인
+    public boolean belongsTo(OptionName optionName) {
+        return this.optionName != null && this.optionName.equals(optionName);
     }
 }

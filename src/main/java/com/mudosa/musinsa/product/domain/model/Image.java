@@ -1,7 +1,7 @@
 package com.mudosa.musinsa.product.domain.model;
 
 import com.mudosa.musinsa.common.domain.model.BaseEntity;
-import com.mudosa.musinsa.product.domain.vo.ImageUrl;
+import com.mudosa.musinsa.event.domain.model.Event;
 
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -21,22 +21,21 @@ public class Image extends BaseEntity {
     private Long imageId;
     
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "product_id", foreignKey = @ForeignKey(name = "fk_image_product"))
+    @JoinColumn(name = "product_id")
     private Product product;
     
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "event_id", foreignKey = @ForeignKey(name = "fk_image_event"))
-    private Long event;
+    @JoinColumn(name = "event_id")
+    private Event event;
     
-    @Embedded
-    @AttributeOverride(name = "value", column = @Column(name = "image_url", nullable = false, length = 2048))
-    private ImageUrl imageUrl;
+    @Column(name = "image_url", nullable = false, length = 2048)
+    private String imageUrl;
     
     @Column(name = "is_thumbnail", nullable = false)
     private Boolean isThumbnail;
     
     @Builder
-    public Image(Product product, Long event, ImageUrl imageUrl, Boolean isThumbnail) {
+    public Image(Product product, Event event, String imageUrl, Boolean isThumbnail) {
         this.product = product;
         this.event = event;
         this.imageUrl = imageUrl;
@@ -44,7 +43,7 @@ public class Image extends BaseEntity {
     }
     
     // 도메인 로직: 통합 수정
-    public void modify(Product product, Long event, ImageUrl imageUrl, Boolean isThumbnail) {
+    public void modify(Product product, Event event, String imageUrl, Boolean isThumbnail) {
         if (product != null) this.product = product;
         if (event != null) this.event = event;
         if (imageUrl != null) this.imageUrl = imageUrl;
@@ -61,5 +60,9 @@ public class Image extends BaseEntity {
         return this.product != null;
     }
     
+    // 도메인 로직: 이벤트 이미지 여부 확인
+    public boolean isEventImage() {
+        return this.event != null;
+    }
 
 }
