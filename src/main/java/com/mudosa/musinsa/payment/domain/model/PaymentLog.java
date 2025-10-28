@@ -1,6 +1,6 @@
 package com.mudosa.musinsa.payment.domain.model;
 
-import com.mudosa.musinsa.common.domain.BaseEntity;
+import com.mudosa.musinsa.common.domain.model.BaseEntity;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -29,16 +29,21 @@ public class PaymentLog extends BaseEntity {
     private Long userId;
     
     @Column(name = "event_status", nullable = false, length = 50)
-    private String eventStatus;
+    private String eventStatus; // 이벤트 상태 (CREATED, APPROVED, CANCELLED 등)
     
     @Column(name = "event_message", columnDefinition = "TEXT")
-    private String eventMessage;
+    private String eventMessage; // 이벤트 메시지
     
     /**
      * 결제 로그 생성
      */
-    public static PaymentLog create(Long userId, String eventStatus, String eventMessage) {
+    public static PaymentLog create(
+            Payment payment,
+            String eventStatus, 
+            String eventMessage,
+            Long userId) {
         PaymentLog log = new PaymentLog();
+        log.payment = payment;
         log.userId = userId;
         log.eventStatus = eventStatus;
         log.eventMessage = eventMessage;

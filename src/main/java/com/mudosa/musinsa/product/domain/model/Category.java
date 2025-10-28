@@ -1,52 +1,47 @@
 package com.mudosa.musinsa.product.domain.model;
 
-import com.mudosa.musinsa.common.domain.BaseEntity;
+import com.mudosa.musinsa.common.domain.model.BaseEntity;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * 카테고리 애그리거트 루트
  */
 @Entity
-@Table(name = "category")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@Table(name = "category")
 public class Category extends BaseEntity {
-    
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "category_id")
-    private Long id;
-    
-    @Column(name = "category_name", nullable = false, length = 50)
+    private Long categoryId;
+
+    @Column(name = "category_name", nullable = false, length = 100)
     private String categoryName;
-    
-    @Column(name = "parent_id")
-    private Long parentId;
-    
-    @Column(name = "category_level", nullable = false)
-    private Integer categoryLevel = 0;
-    
-    @Column(name = "display_order")
-    private Integer displayOrder = 0;
-    
-    /**
-     * 카테고리 생성
-     */
-    public static Category create(String categoryName, Long parentId, int level) {
-        Category category = new Category();
-        category.categoryName = categoryName;
-        category.parentId = parentId;
-        category.categoryLevel = level;
-        return category;
-    }
-    
-    /**
-     * 최상위 카테고리 생성
-     */
-    public static Category createRoot(String categoryName) {
-        return create(categoryName, null, 0);
-    }
+
+    // 카테고리 깊이는 1 또는 2
+    @Column(name = "category_depth", nullable = false)
+    private Integer categoryDepth;
+
+    @Column(name = "image_url", length = 2048)
+    private String imageUrl;
+
+    // 자기 참조: 부모 카테고리
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "parent_id", foreignKey = @ForeignKey(name = "fk_category_parent"))
+    private Category parent;
+
+    // 자기 참조: 자식 카테고리 목록
+    @OneToMany(mappedBy = "parent", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private final List<Category> children = new ArrayList<>();
+
+
 }

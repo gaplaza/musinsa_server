@@ -1,10 +1,10 @@
 package com.mudosa.musinsa.domain.chat.dto;
 
-import com.mudosa.musinsa.domain.chat.enums.MessageType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -18,8 +18,7 @@ import java.util.List;
 public class MessageSendRequest {
   private Long chatId;           // 채팅방 ID
   private Long chatPartId;       // 발신자 ChatPart ID
-  private MessageType type;      // TEXT, IMAGE, FILE, LINK
   private String content;        // 메시지 내용
   private Long parentId;         // 답장할 메시지 ID (스레드)
-  private List<AttachmentRequest> attachments; // 첨부파일 정보
+  private List<MultipartFile> attachments; // 첨부파일 정보
 }

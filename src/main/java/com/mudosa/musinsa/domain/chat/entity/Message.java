@@ -57,6 +57,10 @@ public class Message {
   @Column(name = "deleted_at")
   private LocalDateTime deletedAt;
 
+  @Builder.Default
+  @OneToMany(mappedBy = "message", cascade = CascadeType.ALL, orphanRemoval = true)
+  private List<MessageAttachment> attachments = new ArrayList<>();
+
   // 편의 메서드(필요 시)
   public void replyTo(Message parent) {
     this.parent = parent;

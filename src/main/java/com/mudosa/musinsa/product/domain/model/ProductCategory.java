@@ -1,39 +1,93 @@
 package com.mudosa.musinsa.product.domain.model;
 
-import com.mudosa.musinsa.common.domain.BaseEntity;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-/**
- * 상품-카테고리 매핑 엔티티
- * Product 애그리거트 내부
- */
+import java.io.Serializable;
+import java.util.Objects;
+
 @Entity
-@Table(name = "product_category")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class ProductCategory extends BaseEntity {
+@Table(name = "product_category")
+public class ProductCategory {
     
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "product_category_id")
-    private Long id;
+    @EmbeddedId
+    private ProductCategoryId id;
     
-    @Column(name = "product_id", nullable = false)
-    private Long productId;
+    @MapsId("productId")
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "product_id")
+    private Product product;
     
-    @Column(name = "category_id", nullable = false)
-    private Long categoryId;
+    @MapsId("categoryId")
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "category_id")
+    private Category category;
     
-    /**
-     * 상품-카테고리 생성
-     */
-    public static ProductCategory create(Long productId, Long categoryId) {
-        ProductCategory pc = new ProductCategory();
-        pc.productId = productId;
-        pc.categoryId = categoryId;
-        return pc;
+    @Builder
+    public ProductCategory(Product product, Category category) {
+        this.product = product;
+        this.category = category;
+        this.id = new ProductCategoryId(
+            product.getProductId(),
+            category.getCategoryId()
+        );
+    }
+    
+    // 도메인 로직: 상품-카테고리 매핑 정보 수정
+    public void modify(Product product, Category category) {
+        if (product != null) {
+            this.product = product;
+            this.id.productId = product.getProductId();
+        }
+        if (category != null) {
+            this.category = category;
+            this.id.categoryId = category.getCategoryId();
+        }
+    }
+    
+    // 도메인 로직: 특정 상품의 카테고리 여부 확인
+    public boolean belongsToProduct(Product product) {
+        return this.product != null && this.product.equals(product);
+    }
+    
+    // 도메인 로직: 특정 카테고리의 상품 여부 확인
+    public boolean belongsToCategory(Category category) {
+        return this.category != null && this.category.equals(category);
+    }
+    
+    @Embeddable
+    @NoArgsConstructor(access = AccessLevel.PROTECTED)
+    @Getter
+    public static class ProductCategoryId implements Serializable {
+        
+        @Column(name = "product_id")
+        private Long productId;
+        
+        @Column(name = "category_id")
+        private Long categoryId;
+        
+        public ProductCategoryId(Long productId, Long categoryId) {
+            this.productId = productId;
+            this.categoryId = categoryId;
+        }
+        
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            ProductCategoryId that = (ProductCategoryId) o;
+            return Objects.equals(productId, that.productId) &&
+                   Objects.equals(categoryId, that.categoryId);
+        }
+        
+        @Override
+        public int hashCode() {
+            return Objects.hash(productId, categoryId);
+        }
     }
 }
