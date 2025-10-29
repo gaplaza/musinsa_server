@@ -29,6 +29,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -90,14 +91,22 @@ public class ProductService {
                 .inventory(inventory)
                 .build();
 
-            optionSpec.optionValueIds().stream()
-                .map(optionValueMap::get)
-                .filter(value -> value != null)
-                .map(value -> ProductOptionValue.builder()
-                    .productOption(productOption)
-                    .optionValue(value)
-                    .build())
-                .forEach(productOption::addOptionValue);
+                List<Long> optionValueIds = optionSpec.optionValueIds() != null
+                    ? optionSpec.optionValueIds()
+                    : Collections.emptyList();
+
+                optionValueIds.stream()
+                    .map(id -> {
+                        OptionValue value = optionValueMap.get(id);
+                        if (value == null) {
+                            throw new IllegalArgumentException("존재하지 않는 옵션 값 ID가 포함되어 있습니다: " + id);
+                        }
+                        return ProductOptionValue.builder()
+                            .productOption(productOption)
+                            .optionValue(value)
+                            .build();
+                    })
+                    .forEach(productOption::addOptionValue);
 
             product.addProductOption(productOption);
         });
@@ -180,16 +189,25 @@ public class ProductService {
 
     private Map<Long, OptionValue> loadOptionValues(List<ProductCreateCommand.OptionSpec> optionSpecs) {
         Set<Long> optionValueIds = optionSpecs.stream()
-            .flatMap(spec -> spec.optionValueIds().stream())
+                .filter(spec -> spec.optionValueIds() != null)
+                .flatMap(spec -> spec.optionValueIds().stream())
             .collect(Collectors.toSet());
 
         if (optionValueIds.isEmpty()) {
             return Collections.emptyMap();
         }
 
-        return optionValueRepository.findAllByOptionValueIdIn(new ArrayList<>(optionValueIds))
+            Map<Long, OptionValue> optionValueMap = optionValueRepository.findAllByOptionValueIdIn(new ArrayList<>(optionValueIds))
             .stream()
-            .collect(Collectors.toMap(OptionValue::getOptionValueId, Function.identity()));
+                .collect(Collectors.toMap(OptionValue::getOptionValueId, Function.identity()));
+
+            if (optionValueMap.size() != optionValueIds.size()) {
+                Set<Long> missingIds = new HashSet<>(optionValueIds);
+                missingIds.removeAll(optionValueMap.keySet());
+                throw new IllegalArgumentException("존재하지 않는 옵션 값 ID가 포함되어 있습니다: " + missingIds);
+            }
+
+            return optionValueMap;
     }
 
     /**

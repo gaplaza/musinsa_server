@@ -5,13 +5,12 @@ import com.mudosa.musinsa.brand.domain.repository.BrandRepository;
 import com.mudosa.musinsa.product.application.ProductService;
 import com.mudosa.musinsa.product.application.dto.ProductCreateRequest;
 import com.mudosa.musinsa.product.domain.model.Category;
-import com.mudosa.musinsa.product.domain.model.OptionName;
-import com.mudosa.musinsa.product.domain.model.OptionValue;
 import com.mudosa.musinsa.product.domain.model.Product;
 import com.mudosa.musinsa.product.domain.model.ProductOption;
+import com.mudosa.musinsa.product.domain.model.OptionName;
+import com.mudosa.musinsa.product.domain.model.OptionValue;
 import com.mudosa.musinsa.product.domain.repository.CategoryRepository;
 import com.mudosa.musinsa.product.domain.repository.ProductLikeRepository;
-import com.mudosa.musinsa.product.domain.repository.ProductRepository;
 import com.mudosa.musinsa.product.domain.vo.ProductGenderType;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityNotFoundException;
@@ -44,9 +43,6 @@ class ProductCreateServiceTest {
 
     @Autowired
     private CategoryRepository categoryRepository;
-
-    @Autowired
-    private ProductRepository productRepository;
 
     @Autowired
     private ProductLikeRepository productLikeRepository;
@@ -82,7 +78,7 @@ class ProductCreateServiceTest {
                 .build()))
             .build();
 
-    Long productId = productService.createProduct(request, brand, category);
+        Long productId = productService.createProduct(request, brand, category);
 
         entityManager.flush();
         entityManager.clear();
@@ -276,8 +272,8 @@ class ProductCreateServiceTest {
     }
 
     @Test
-    @DisplayName("존재하지 않는 옵션 값 ID는 무시하고 상품 옵션을 저장한다")
-    void createProductCommand_skipsUnknownOptionValues() {
+    @DisplayName("존재하지 않는 옵션 값 ID가 포함되면 예외가 발생한다")
+    void createProductCommand_unknownOptionValue_throws() {
         Brand brand = prepareBrand();
         Category category = prepareCategory("하의");
 
@@ -299,16 +295,9 @@ class ProductCreateServiceTest {
             )))
             .build();
 
-        Long productId = productService.createProduct(command);
-
-        entityManager.flush();
-        entityManager.clear();
-
-        Product product = productRepository.findById(productId)
-            .orElseThrow();
-
-        assertThat(product.getProductOptions()).hasSize(1);
-        assertThat(product.getProductOptions().get(0).getProductOptionValues()).isEmpty();
+        assertThatThrownBy(() -> productService.createProduct(command))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("존재하지 않는 옵션 값 ID");
     }
 
     private Long createSampleProduct() {

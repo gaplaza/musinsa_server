@@ -10,7 +10,6 @@ import com.mudosa.musinsa.product.domain.repository.CategoryRepository;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
@@ -32,7 +31,6 @@ public class ProductController {
      * 상품 등록
      */
     @PostMapping
-    @Transactional
     public ResponseEntity<ProductCreateResponse> createProduct(@Valid @RequestBody ProductCreateRequest request) {
         Brand brand = brandRepository.findById(request.getBrandId())
             .orElseThrow(() -> new IllegalArgumentException("브랜드를 찾을 수 없습니다. brandId=" + request.getBrandId()));

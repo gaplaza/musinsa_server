@@ -20,7 +20,7 @@ public class CartItem extends BaseEntity {
     @Column(name = "cart_item_id")
     private Long cartItemId;
 
-    @ManyToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
     
