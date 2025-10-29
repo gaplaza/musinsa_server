@@ -3,9 +3,11 @@ package com.mudosa.musinsa.product.application;
 import com.mudosa.musinsa.brand.domain.model.Brand;
 import com.mudosa.musinsa.common.vo.Money;
 import com.mudosa.musinsa.product.application.dto.ProductCreateRequest;
+import com.mudosa.musinsa.product.application.dto.ProductDetailResponse;
 import com.mudosa.musinsa.product.domain.model.Category;
 import com.mudosa.musinsa.product.domain.model.Image;
 import com.mudosa.musinsa.product.domain.model.Inventory;
+import com.mudosa.musinsa.product.domain.model.OptionName;
 import com.mudosa.musinsa.product.domain.model.OptionValue;
 import com.mudosa.musinsa.product.domain.model.Product;
 import com.mudosa.musinsa.product.domain.model.ProductLike;
@@ -55,8 +57,6 @@ public class ProductService {
      */
     @Transactional
     public Long createProduct(ProductCreateCommand command) {
-        validateThumbnailPresence(command.getImages());
-
         Product product = Product.builder()
             .brand(command.getBrand())
             .productName(command.getProductName())
@@ -69,13 +69,10 @@ public class ProductService {
 
         command.getCategories().forEach(product::addCategory);
 
-        command.getImages().forEach(imageSpec ->
-            product.addImage(Image.builder()
-                .product(product)
-                .imageUrl(imageSpec.imageUrl())
-                .isThumbnail(imageSpec.isThumbnail())
-                .build())
-        );
+        List<Product.ImageRegistration> imageRegistrations = command.getImages().stream()
+            .map(imageSpec -> new Product.ImageRegistration(imageSpec.imageUrl(), imageSpec.isThumbnail()))
+            .collect(Collectors.toList());
+        product.registerImages(imageRegistrations);
 
         Map<Long, OptionValue> optionValueMap = loadOptionValues(command.getOptions());
 
@@ -96,16 +93,10 @@ public class ProductService {
                     : Collections.emptyList();
 
                 optionValueIds.stream()
-                    .map(id -> {
-                        OptionValue value = optionValueMap.get(id);
-                        if (value == null) {
-                            throw new IllegalArgumentException("존재하지 않는 옵션 값 ID가 포함되어 있습니다: " + id);
-                        }
-                        return ProductOptionValue.builder()
-                            .productOption(productOption)
-                            .optionValue(value)
-                            .build();
-                    })
+                    .map(id -> ProductOptionValue.builder()
+                        .productOption(productOption)
+                        .optionValue(optionValueMap.get(id))
+                        .build())
                     .forEach(productOption::addOptionValue);
 
             product.addProductOption(productOption);
@@ -113,24 +104,6 @@ public class ProductService {
 
         Product saved = productRepository.save(product);
         return saved.getProductId();
-    }
-
-    private void validateThumbnailPresence(List<ProductCreateCommand.ImageSpec> images) {
-        if (images == null || images.isEmpty()) {
-            throw new IllegalArgumentException("상품 이미지는 최소 1장 이상 등록해야 합니다.");
-        }
-
-        long thumbnailCount = images.stream()
-            .filter(ProductCreateCommand.ImageSpec::isThumbnail)
-            .count();
-
-        if (thumbnailCount == 0) {
-            throw new IllegalArgumentException("상품 썸네일은 최소 1개 이상 등록해야 합니다.");
-        }
-
-        if (thumbnailCount > 1) {
-            throw new IllegalArgumentException("상품 썸네일은 하나만 등록할 수 있습니다.");
-        }
     }
 
     /**
@@ -214,9 +187,83 @@ public class ProductService {
      * 상세 페이지용 조회. EntityGraph 로 주요 연관을 로딩한다.
      * 이후 DTO 설계 시 변환 단계를 추가할 예정.
      */
-    public Product getProductDetail(Long productId) {
-        return productRepository.findDetailById(productId)
+    public ProductDetailResponse getProductDetail(Long productId) {
+        Product product = productRepository.findDetailById(productId)
             .orElseThrow(() -> new EntityNotFoundException("Product not found: " + productId));
+
+        long likeCount = productLikeRepository.countByProduct(product);
+        return mapToDetailResponse(product, likeCount);
+    }
+
+    private ProductDetailResponse mapToDetailResponse(Product product, long likeCount) {
+        List<ProductDetailResponse.ImageResponse> imageResponses = product.getImages().stream()
+            .map(image -> ProductDetailResponse.ImageResponse.builder()
+                .imageId(image.getImageId())
+                .imageUrl(image.getImageUrl())
+                .isThumbnail(Boolean.TRUE.equals(image.getIsThumbnail()))
+                .build())
+            .collect(Collectors.toList());
+
+        List<ProductDetailResponse.CategorySummary> categorySummaries = product.getProductCategories().stream()
+            .map(mapping -> {
+                Category category = mapping.getCategory();
+                return ProductDetailResponse.CategorySummary.builder()
+                    .categoryId(category != null ? category.getCategoryId() : null)
+                    .categoryName(category != null ? category.getCategoryName() : null)
+                    .build();
+            })
+            .collect(Collectors.toList());
+
+        List<ProductDetailResponse.OptionDetail> optionDetails = product.getProductOptions().stream()
+            .map(option -> {
+                List<ProductDetailResponse.OptionDetail.OptionValueDetail> optionValueDetails = option.getProductOptionValues().stream()
+                    .map(mapping -> {
+                        OptionValue optionValue = mapping.getOptionValue();
+                        OptionName optionName = optionValue != null ? optionValue.getOptionName() : null;
+                        return ProductDetailResponse.OptionDetail.OptionValueDetail.builder()
+                            .optionValueId(optionValue != null ? optionValue.getOptionValueId() : null)
+                            .optionNameId(optionName != null ? optionName.getOptionNameId() : null)
+                            .optionName(optionName != null ? optionName.getOptionName() : null)
+                            .optionValue(optionValue != null ? optionValue.getOptionValue() : null)
+                            .build();
+                    })
+                    .collect(Collectors.toList());
+
+                Integer stockQuantity = null;
+                Boolean inventoryAvailable = null;
+                if (option.getInventory() != null && option.getInventory().getStockQuantity() != null) {
+                    stockQuantity = option.getInventory().getStockQuantity().getValue();
+                    inventoryAvailable = option.getInventory().getIsAvailable();
+                } else if (option.getInventory() != null) {
+                    inventoryAvailable = option.getInventory().getIsAvailable();
+                }
+
+                return ProductDetailResponse.OptionDetail.builder()
+                    .optionId(option.getProductOptionId())
+                    .productPrice(option.getProductPrice() != null ? option.getProductPrice().getAmount() : null)
+                    .stockQuantity(stockQuantity)
+                    .inventoryAvailable(inventoryAvailable)
+                    .optionValues(optionValueDetails)
+                    .build();
+            })
+            .collect(Collectors.toList());
+
+        return ProductDetailResponse.builder()
+            .productId(product.getProductId())
+            .brandId(product.getBrand() != null ? product.getBrand().getBrandId() : null)
+            .brandName(product.getBrandName())
+            .productName(product.getProductName())
+            .productInfo(product.getProductInfo())
+            .productGenderType(product.getProductGenderType() != null && product.getProductGenderType().getValue() != null
+                ? product.getProductGenderType().getValue().name()
+                : null)
+            .isAvailable(product.getIsAvailable())
+            .categoryPath(product.getCategoryPath())
+            .likeCount(likeCount)
+            .categories(categorySummaries)
+            .images(imageResponses)
+            .options(optionDetails)
+            .build();
     }
 
     /**

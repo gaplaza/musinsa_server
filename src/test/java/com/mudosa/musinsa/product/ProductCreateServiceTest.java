@@ -4,9 +4,9 @@ import com.mudosa.musinsa.brand.domain.model.Brand;
 import com.mudosa.musinsa.brand.domain.repository.BrandRepository;
 import com.mudosa.musinsa.product.application.ProductService;
 import com.mudosa.musinsa.product.application.dto.ProductCreateRequest;
+import com.mudosa.musinsa.product.application.dto.ProductDetailResponse;
 import com.mudosa.musinsa.product.domain.model.Category;
 import com.mudosa.musinsa.product.domain.model.Product;
-import com.mudosa.musinsa.product.domain.model.ProductOption;
 import com.mudosa.musinsa.product.domain.model.OptionName;
 import com.mudosa.musinsa.product.domain.model.OptionValue;
 import com.mudosa.musinsa.product.domain.repository.CategoryRepository;
@@ -83,16 +83,16 @@ class ProductCreateServiceTest {
         entityManager.flush();
         entityManager.clear();
 
-        Product persisted = productService.getProductDetail(productId);
+    ProductDetailResponse persisted = productService.getProductDetail(productId);
 
-        assertThat(persisted.getProductName()).isEqualTo("테스트 상품");
-        assertThat(persisted.getImages()).hasSize(1);
-        assertThat(persisted.getImages().get(0).getIsThumbnail()).isTrue();
-        assertThat(persisted.getProductOptions()).hasSize(1);
-        ProductOption option = persisted.getProductOptions().get(0);
-        assertThat(option.getInventory().getStockQuantity().getValue()).isEqualTo(10);
-        assertThat(option.getProductOptionValues()).hasSize(1);
-        assertThat(persisted.getProductCategories()).hasSize(1);
+    assertThat(persisted.getProductName()).isEqualTo("테스트 상품");
+    assertThat(persisted.getImages()).hasSize(1);
+    assertThat(Boolean.TRUE.equals(persisted.getImages().get(0).getIsThumbnail())).isTrue();
+    assertThat(persisted.getOptions()).hasSize(1);
+    ProductDetailResponse.OptionDetail option = persisted.getOptions().get(0);
+    assertThat(option.getStockQuantity()).isEqualTo(10);
+    assertThat(option.getOptionValues()).hasSize(1);
+    assertThat(persisted.getCategories()).hasSize(1);
     }
 
     @Test

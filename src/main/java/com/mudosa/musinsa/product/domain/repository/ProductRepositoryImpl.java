@@ -50,6 +50,12 @@ public class ProductRepositoryImpl implements ProductRepositoryCustom {
         Hibernate.initialize(product.getProductCategories());
         Hibernate.initialize(product.getProductOptions());
 
+        product.getProductCategories().forEach(mapping -> {
+            if (mapping != null) {
+                Hibernate.initialize(mapping.getCategory());
+            }
+        });
+
         product.getProductOptions().forEach(option -> {
             Hibernate.initialize(option.getInventory());
             Hibernate.initialize(option.getProductOptionValues());

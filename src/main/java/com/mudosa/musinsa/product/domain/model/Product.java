@@ -132,6 +132,28 @@ public class Product extends BaseEntity {
         this.productOptions.add(productOption);
     }
 
+    /**
+     * 상품 이미지를 한 번에 등록하며 썸네일 제약을 검증한다.
+     */
+    public void registerImages(java.util.List<ImageRegistration> imageRegistrations) {
+        if (imageRegistrations == null || imageRegistrations.isEmpty()) {
+            throw new IllegalArgumentException("상품 이미지는 최소 1장 이상 등록해야 합니다.");
+        }
+
+        java.util.List<Image> newImages = imageRegistrations.stream()
+            .map(spec -> Image.builder()
+                .product(this)
+                .imageUrl(spec.imageUrl())
+                .isThumbnail(spec.isThumbnail())
+                .build())
+            .toList();
+
+        validateThumbnailConstraint(newImages);
+
+        this.images.clear();
+        newImages.forEach(this::addImage);
+    }
+
     // 카테고리 서비스에서 내려준 엔티티를 그대로 연결
     public void addCategory(Category category) {
         if (category == null) {
@@ -175,5 +197,8 @@ public class Product extends BaseEntity {
         if (thumbnailCount > 1) {
             throw new IllegalArgumentException("상품 썸네일은 하나만 등록할 수 있습니다.");
         }
+    }
+
+    public record ImageRegistration(String imageUrl, boolean isThumbnail) {
     }
 }

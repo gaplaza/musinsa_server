@@ -5,6 +5,7 @@ import com.mudosa.musinsa.brand.domain.repository.BrandRepository;
 import com.mudosa.musinsa.product.application.ProductService;
 import com.mudosa.musinsa.product.application.dto.ProductCreateRequest;
 import com.mudosa.musinsa.product.application.dto.ProductCreateResponse;
+import com.mudosa.musinsa.product.application.dto.ProductDetailResponse;
 import com.mudosa.musinsa.product.domain.model.Category;
 import com.mudosa.musinsa.product.domain.repository.CategoryRepository;
 import jakarta.validation.Valid;
@@ -33,14 +34,23 @@ public class ProductController {
     @PostMapping
     public ResponseEntity<ProductCreateResponse> createProduct(@Valid @RequestBody ProductCreateRequest request) {
         Brand brand = brandRepository.findById(request.getBrandId())
-            .orElseThrow(() -> new IllegalArgumentException("브랜드를 찾을 수 없습니다. brandId=" + request.getBrandId()));
+            .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException("브랜드를 찾을 수 없습니다. brandId=" + request.getBrandId()));
 
         Category category = categoryRepository.findById(request.getCategoryId())
-            .orElseThrow(() -> new IllegalArgumentException("카테고리를 찾을 수 없습니다. categoryId=" + request.getCategoryId()));
+            .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException("카테고리를 찾을 수 없습니다. categoryId=" + request.getCategoryId()));
 
         Long productId = productService.createProduct(request, brand, category);
         URI location = URI.create("/api/products/" + productId);
         return ResponseEntity.created(location)
             .body(ProductCreateResponse.builder().productId(productId).build());
+    }
+
+    /**
+     * 상품 상세 조회
+     */
+    @GetMapping("/{productId}")
+    public ResponseEntity<ProductDetailResponse> getProductDetail(@PathVariable Long productId) {
+        ProductDetailResponse response = productService.getProductDetail(productId);
+        return ResponseEntity.ok(response);
     }
 }
