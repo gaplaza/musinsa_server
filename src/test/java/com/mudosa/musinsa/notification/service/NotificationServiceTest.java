@@ -22,4 +22,9 @@ public class NotificationServiceTest {
             log.info(dto.toString());
         }
     }
+
+    @Test
+    public void notificationUpdateTest(){
+        log.info(notificationService.updateNotificationState(1L));
+    }
 }

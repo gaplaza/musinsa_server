@@ -38,4 +38,8 @@ public class NotificationService {
         }
         return result;
     }
+
+    public int updateNotificationState(Long notificationId){
+        return notificationRepository.updateNotificationStatus(notificationId);
+    }
 }
