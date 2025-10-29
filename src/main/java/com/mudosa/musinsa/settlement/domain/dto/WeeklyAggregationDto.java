@@ -17,7 +17,7 @@ public class WeeklyAggregationDto {
     private Integer week;
     private LocalDate weekStartDate;
     private LocalDate weekEndDate;
-    private Integer totalOrderCount;
+    private Long totalOrderCount;
     private Money totalSalesAmount;
     private Money totalCommissionAmount;
     private Money totalTaxAmount;
@@ -40,7 +40,7 @@ public class WeeklyAggregationDto {
         this.week = week;
         this.weekStartDate = weekStartDate;
         this.weekEndDate = weekEndDate;
-        this.totalOrderCount = totalOrderCount.intValue();
+        this.totalOrderCount = totalOrderCount;
         this.totalSalesAmount = new Money(totalSalesAmount);
         this.totalCommissionAmount = new Money(totalCommissionAmount);
         this.totalTaxAmount = new Money(totalTaxAmount);
