@@ -14,7 +14,7 @@ public class MonthlyAggregationDto {
     private Long brandId;
     private Integer year;
     private Integer month;
-    private Integer totalOrderCount;
+    private Long totalOrderCount;
     private Money totalSalesAmount;
     private Money totalCommissionAmount;
     private Money totalTaxAmount;
@@ -33,7 +33,7 @@ public class MonthlyAggregationDto {
         this.brandId = brandId;
         this.year = year;
         this.month = month;
-        this.totalOrderCount = totalOrderCount.intValue();
+        this.totalOrderCount = totalOrderCount;
         this.totalSalesAmount = new Money(totalSalesAmount);
         this.totalCommissionAmount = new Money(totalCommissionAmount);
         this.totalTaxAmount = new Money(totalTaxAmount);

@@ -14,7 +14,7 @@ public class DailyAggregationDto {
 
     private Long brandId;
     private LocalDate settlementDate;
-    private Integer totalOrderCount;
+    private Long totalOrderCount;
     private Money totalSalesAmount;
     private Money totalCommissionAmount;
     private Money totalTaxAmount;
@@ -31,7 +31,7 @@ public class DailyAggregationDto {
     ) {
         this.brandId = brandId;
         this.settlementDate = settlementDate;
-        this.totalOrderCount = totalOrderCount.intValue();
+        this.totalOrderCount = totalOrderCount;
         this.totalSalesAmount = new Money(totalSalesAmount);
         this.totalCommissionAmount = new Money(totalCommissionAmount);
         this.totalTaxAmount = new Money(totalTaxAmount);
