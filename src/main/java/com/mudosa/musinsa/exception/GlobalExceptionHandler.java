@@ -1,6 +1,7 @@
 package com.mudosa.musinsa.exception;
 
 import com.mudosa.musinsa.common.dto.ApiResponse;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -34,6 +35,13 @@ public class GlobalExceptionHandler {
     log.warn("Validation 실패: {}", errorMessage.toString());
     ApiResponse<Void> response = ApiResponse.failure(errorCode.getCode(), errorMessage.toString());
     return new ResponseEntity<>(response, errorCode.getHttpStatus());
+  }
+
+  /* 엔티티 미존재 예외 처리 */
+  @ExceptionHandler(EntityNotFoundException.class)
+  public ResponseEntity<ApiResponse<Void>> handleEntityNotFound(EntityNotFoundException e) {
+    ApiResponse<Void> response = ApiResponse.failure(ErrorCode.RESOURCE_NOT_FOUND.getCode(), e.getMessage());
+    return new ResponseEntity<>(response, ErrorCode.RESOURCE_NOT_FOUND.getHttpStatus());
   }
 
   /* 예상치 못한 예외 처리 */
