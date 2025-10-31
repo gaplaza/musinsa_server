@@ -19,28 +19,28 @@ import java.util.List;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(name = "product_option")
 public class ProductOption extends BaseEntity {
-    
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "product_option_id")
     private Long productOptionId;
-    
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "product_id", nullable = false)
     private Product product;
 
-    @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "inventory_id", nullable = false, unique = true)
     private Inventory inventory;
-    
+
     @Embedded
     @AttributeOverride(name = "amount", column = @Column(name = "product_price", nullable = false, precision = 10, scale = 2))
     private Money productPrice;
-    
+
     // 옵션 값 매핑을 애그리거트 내부에서 함께 관리
     @OneToMany(mappedBy = "productOption", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<ProductOptionValue> productOptionValues = new ArrayList<>();
-    
+
     // 옵션 생성 시 필수 값 검증 후 연관 엔티티를 초기화한다.
     @Builder
     public ProductOption(Product product, Money productPrice, Inventory inventory,
@@ -55,7 +55,7 @@ public class ProductOption extends BaseEntity {
         if (inventory == null) {
             throw new IllegalArgumentException("재고 정보는 옵션에 필수입니다.");
         }
-        
+
         this.product = product;
         this.productPrice = productPrice;
         this.inventory = inventory;
@@ -63,7 +63,7 @@ public class ProductOption extends BaseEntity {
             productOptionValues.forEach(this::addOptionValue);
         }
     }
-    
+
     // 상품 애그리거트에서만 호출해 양방향 연관을 설정한다.
     void setProduct(Product product) {
         this.product = product;

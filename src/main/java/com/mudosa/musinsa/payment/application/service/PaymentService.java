@@ -37,6 +37,15 @@ public class PaymentService {
         try{
             /* 1. 결제 생성 */
             PaymentCreationResult creationResult = createPaymentTransaction(request);
+
+            if (creationResult.hasInsufficientStock()) {
+                log.warn("재고 부족으로 결제 생성 실패");
+
+                return PaymentConfirmResponse.insufficientStock(
+                        creationResult.getInsufficientStockItems()
+                );
+            }
+
             paymentId = creationResult.getPaymentId();
             orderId = creationResult.getOrderId();
 
@@ -77,6 +86,15 @@ public class PaymentService {
                 BigDecimal.valueOf(request.getAmount())
         );
 
+        if (validationResult.hasInsufficientStock()) {
+            log.warn("재고 부족 - 결제 생성 중단");
+
+            return PaymentCreationResult.insufficientStock(
+                    validationResult.getOrderId(),
+                    validationResult.getInsufficientStockItems()
+            );
+        }
+
         log.info("주문 검증 완료 - orderId: {}, finalAmount: {}, discount: {}",
                 validationResult.getOrderId(),
                 validationResult.getFinalAmount(),
@@ -95,7 +113,7 @@ public class PaymentService {
 
         log.info("← TX1 커밋: 결제 생성 완료 - paymentId={}", payment.getId());
 
-        return PaymentCreationResult.of(
+        return PaymentCreationResult.success(
                 payment.getId(),
                 validationResult.getOrderId(),
                 validationResult.getUserId()
@@ -149,10 +167,8 @@ public class PaymentService {
         }
 
         // 주문 완료 단계에서 실패인 경우
-        if (e.getErrorCode() == ErrorCode.INSUFFICIENT_STOCK ||
-                e.getErrorCode() == ErrorCode.ORDER_ALREADY_COMPLETED) {
-
-            log.warn("주문 완료 실패 - 재고 부족 또는 중복 처리");
+        if (e.getErrorCode() == ErrorCode.ORDER_ALREADY_COMPLETED) {
+            log.warn("주문 완료 실패 - 중복 처리");
             failPayment(paymentId, e.getMessage(), userId);
             return;
         }

@@ -3,6 +3,13 @@ package com.mudosa.musinsa.order.domain.model;
 import com.mudosa.musinsa.common.domain.model.BaseEntity;
 import com.mudosa.musinsa.exception.BusinessException;
 import com.mudosa.musinsa.exception.ErrorCode;
+import com.mudosa.musinsa.order.application.dto.InsufficientStockItem;
+import com.mudosa.musinsa.order.application.dto.OrderCreateResponse;
+import com.mudosa.musinsa.payment.domain.model.Payment;
+import com.mudosa.musinsa.payment.domain.model.PaymentEventType;
+import com.mudosa.musinsa.payment.domain.model.PaymentStatus;
+import com.mudosa.musinsa.product.domain.model.Inventory;
+import com.mudosa.musinsa.product.domain.model.ProductOption;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -31,9 +38,6 @@ public class Orders extends BaseEntity {
     
     @Column(name = "coupon_id")
     private Long couponId;
-    
-    @Column(name = "brand_id", nullable = false)
-    private Long brandId;
 
     @OneToMany(mappedBy = "orders", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<OrderProduct> orderProducts = new ArrayList<>();
@@ -59,6 +63,35 @@ public class Orders extends BaseEntity {
     
     @Column(name = "settled_at")
     private LocalDateTime settledAt;
+
+    public static Orders create(
+            BigDecimal totalPrice,
+            Long userId,
+            Long couponId
+            ) {
+
+        if (totalPrice == null || totalPrice.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new BusinessException(ErrorCode.ORDER_INVALID_AMOUNT);
+        }
+
+        Orders order = new Orders();
+        order.userId = userId;
+        order.totalPrice = totalPrice;
+        order.finalPaymentAmount = totalPrice;
+        order.status = OrderStatus.PENDING;
+        order.couponId = couponId;
+
+        /* order 무작위 번호 생성 */
+        order.orderNo = createOrderNumber();
+        return order;
+    }
+
+    private static String createOrderNumber(){
+        // 주문번호 형식: ORD + timestamp(13자리) + random(3자리)
+        long timestamp = System.currentTimeMillis();
+        int random = (int)(Math.random() * 1000);
+        return String.format("ORD%d%03d", timestamp, random);
+    }
     
     public void validatePending() {
         if (!this.status.isPending()) {
@@ -80,7 +113,6 @@ public class Orders extends BaseEntity {
             orderProduct.validateProductOption();
         }
     }
-
 
     public void complete() {
         this.status = this.status.transitionTo(OrderStatus.COMPLETED);
@@ -128,4 +160,22 @@ public class Orders extends BaseEntity {
         this.finalPaymentAmount = this.totalPrice.subtract(discount);
     }
 
+    /* 주문 아이템 추가 */
+    public void addOrderProduct(OrderProduct orderProduct) {
+        if (orderProduct == null) {
+            throw new BusinessException(ErrorCode.ORDER_ITEM_NOT_FOUND, "주문 아이템이 null입니다");
+        }
+        this.orderProducts.add(orderProduct);
+        orderProduct.setOrders(this);  // 양방향 연관관계 설정
+    }
+
+    /* 주문 아이템 일괄 추가 */
+    public void addOrderProducts(List<OrderProduct> orderProducts) {
+        if (orderProducts == null || orderProducts.isEmpty()) {
+            throw new BusinessException(ErrorCode.ORDER_ITEM_NOT_FOUND, "주문 아이템이 비어있습니다");
+        }
+        for (OrderProduct orderProduct : orderProducts) {
+            addOrderProduct(orderProduct);
+        }
+    }
 }

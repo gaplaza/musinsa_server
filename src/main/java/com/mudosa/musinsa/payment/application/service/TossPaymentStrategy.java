@@ -48,7 +48,6 @@ public class TossPaymentStrategy implements PaymentStrategy {
 
 		return PaymentConfirmResponse.builder()
 				.paymentKey(tossResponse.getPaymentKey())
-				.orderId(tossResponse.getOrderId())
 				.status(tossResponse.getStatus())
 				.pgProvider("TOSS")
 				.build();
