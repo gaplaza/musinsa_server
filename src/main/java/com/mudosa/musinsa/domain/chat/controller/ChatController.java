@@ -1,5 +1,6 @@
 package com.mudosa.musinsa.domain.chat.controller;
 
+import com.google.firebase.messaging.FirebaseMessagingException;
 import com.mudosa.musinsa.domain.chat.dto.ChatPartResponse;
 import com.mudosa.musinsa.domain.chat.dto.ChatRoomInfoResponse;
 import com.mudosa.musinsa.domain.chat.dto.MessageResponse;
@@ -48,7 +49,7 @@ public class ChatController {
       @RequestParam(value = "parentId", required = false) Long parentId,
       @RequestPart(value = "message", required = false) String message,
       @RequestPart(value = "files", required = false) List<MultipartFile> files
-  ) {
+  ) throws FirebaseMessagingException {
     log.info("채팅 메시지 전송 요청: chatId={}, message={}, files={}",
         chatId, message, (files != null ? files.size() + "개" : "없음"));
 
@@ -88,7 +89,7 @@ public class ChatController {
 
   /**
    * 채팅방 정보 조회
-   * GET /api/chat/info
+   * GET /api/chat/1/info
    */
   @GetMapping("/{chatId}/info")
   public ResponseEntity<ChatRoomInfoResponse> getChatInfo(@PathVariable Long chatId, @RequestParam Long userId) {
@@ -97,12 +98,31 @@ public class ChatController {
 
 
   /**
-   * 채팅방 정보 조회
-   * GET /api/chat/info
+   * 채팅방 참가
+   * POST /api/chat/1/participants
    */
   @PostMapping("/{chatId}/participants")
   public ResponseEntity<ChatPartResponse> addParticipant(@PathVariable Long chatId, @RequestParam Long userId) {
     return ResponseEntity.ok(chatService.addParticipant(chatId, userId));
+  }
+
+  /**
+   * 채팅방 나가기
+   * PATCH /api/chat/1/leave
+   */
+  @PatchMapping("/{chatId}/leave")
+  public ResponseEntity<List<ChatRoomInfoResponse>> leaveChat(@PathVariable Long chatId, @RequestParam Long userId) {
+    chatService.leaveChat(chatId, userId);
+    return ResponseEntity.ok(chatService.getChatRoomByUserId(userId));
+  }
+
+  /**
+   * 나의 참가 채팅방 조회
+   * GET /api/chat/1/my
+   */
+  @GetMapping("/my")
+  public ResponseEntity<List<ChatRoomInfoResponse>> getMyChat(@RequestParam Long userId) {
+    return ResponseEntity.ok(chatService.getChatRoomByUserId(userId));
   }
 
 

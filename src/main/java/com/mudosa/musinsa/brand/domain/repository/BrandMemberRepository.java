@@ -4,11 +4,8 @@ import com.mudosa.musinsa.brand.domain.model.BrandMember;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-/**
- * BrandMember Repository
- */
 @Repository
 public interface BrandMemberRepository extends JpaRepository<BrandMember, Long> {
-  
-  boolean existsByBrand_BrandIdAndUserId(Long brandId, Long userId);
+
+    boolean existsByBrand_BrandIdAndUserId(Long brandId, Long userId);
 }

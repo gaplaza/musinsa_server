@@ -1,7 +1,9 @@
 package com.mudosa.musinsa.domain.chat.repository;
 
 import com.mudosa.musinsa.domain.chat.entity.ChatPart;
+import org.apache.ibatis.annotations.Param;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -13,17 +15,16 @@ public interface ChatPartRepository extends JpaRepository<ChatPart, Long> {
   // 참여자 조회
   List<ChatPart> findByChatRoom_ChatId(Long chatId);
 
+  // 발신자를 제외한 참여자 조회
+    @Query("SELECT cp FROM ChatPart cp WHERE cp.user.id != :userId AND cp.chatRoom.chatId = :chatId AND cp.leftAt IS NULL")
+    List<ChatPart> findChatPartsExcludingUser(@Param("userId") Long userId, @Param("chatId") Long chatId);
+
   // user.userId → user.id 로 변경
   Optional<ChatPart> findByChatRoomChatIdAndUser_Id(Long chatId, Long userId);
 
   // 활성 여부 exists (퇴장 전)
   boolean existsByChatRoom_ChatIdAndUser_IdAndLeftAtIsNull(Long chatId, Long userId);
 
-  // 이력 존재 여부
-  boolean existsByChatRoom_ChatIdAndUser_Id(Long chatId, Long userId);
 
-  // (선택) 활성 목록/카운트
-  List<ChatPart> findByChatRoom_ChatIdAndLeftAtIsNull(Long chatId);
-
-  long countByChatRoom_ChatIdAndLeftAtIsNull(Long chatId);
+  Optional<ChatPart> findByChatRoom_ChatIdAndUserIdAndLeftAtIsNull(Long chatId, Long userId);
 }

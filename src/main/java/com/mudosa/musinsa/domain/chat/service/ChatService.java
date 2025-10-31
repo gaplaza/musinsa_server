@@ -1,5 +1,6 @@
 package com.mudosa.musinsa.domain.chat.service;
 
+import com.google.firebase.messaging.FirebaseMessagingException;
 import com.mudosa.musinsa.domain.chat.dto.ChatPartResponse;
 import com.mudosa.musinsa.domain.chat.dto.ChatRoomInfoResponse;
 import com.mudosa.musinsa.domain.chat.dto.MessageResponse;
@@ -22,7 +23,7 @@ public interface ChatService {
    * @param content 메시지 내용
    * @param files   첨부파일들(이미지)
    */
-  MessageResponse saveMessage(Long chatId, Long userId, Long parentId, String content, List<MultipartFile> files);
+  MessageResponse saveMessage(Long chatId, Long userId, Long parentId, String content, List<MultipartFile> files) throws FirebaseMessagingException;
 
   /**
    * 특정 채팅방의 메시지 페이지 조회(최신순).
@@ -39,4 +40,8 @@ public interface ChatService {
   ChatRoomInfoResponse getChatRoomInfoByChatId(Long chatId, Long userId);
 
   ChatPartResponse addParticipant(Long chatId, Long userId);
+
+  void leaveChat(Long chatId, Long userId);
+
+  List<ChatRoomInfoResponse> getChatRoomByUserId(Long userId);
 }
