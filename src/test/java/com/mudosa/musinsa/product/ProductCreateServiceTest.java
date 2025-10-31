@@ -2,6 +2,7 @@ package com.mudosa.musinsa.product;
 
 import com.mudosa.musinsa.brand.domain.model.Brand;
 import com.mudosa.musinsa.brand.domain.repository.BrandRepository;
+import com.mudosa.musinsa.notification.domain.service.FcmService;
 import com.mudosa.musinsa.product.application.ProductService;
 import com.mudosa.musinsa.product.application.dto.ProductCreateRequest;
 import com.mudosa.musinsa.product.application.dto.ProductDetailResponse;
@@ -11,7 +12,7 @@ import com.mudosa.musinsa.product.domain.model.OptionName;
 import com.mudosa.musinsa.product.domain.model.OptionValue;
 import com.mudosa.musinsa.product.domain.repository.CategoryRepository;
 import com.mudosa.musinsa.product.domain.repository.ProductLikeRepository;
-import com.mudosa.musinsa.product.domain.vo.ProductGenderType;
+import com.mudosa.musinsa.product.domain.model.ProductGenderType;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
@@ -19,6 +20,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.test.context.ActiveProfiles;
 
@@ -36,6 +38,10 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 @ActiveProfiles("test")
 @Transactional
 class ProductCreateServiceTest {
+
+    @MockBean
+    FcmService fcmService;
+
 
     @Autowired
     private ProductService productService;
@@ -63,7 +69,7 @@ class ProductCreateServiceTest {
             .brandId(brand.getBrandId())
             .productName("테스트 상품")
             .productInfo("테스트 상품 설명")
-            .productGenderType(ProductGenderType.Type.ALL.name())
+            .productGenderType(ProductGenderType.ALL.name())
             .brandName(brand.getNameKo())
             .categoryPath(category.buildPath())
             .isAvailable(true)
@@ -108,7 +114,7 @@ class ProductCreateServiceTest {
             .brandId(brand.getBrandId())
             .productName("썸네일 테스트")
             .productInfo("중복 썸네일")
-            .productGenderType(ProductGenderType.Type.MEN.name())
+            .productGenderType(ProductGenderType.MEN.name())
             .brandName(brand.getNameKo())
             .categoryPath(category.buildPath())
             .isAvailable(true)
@@ -147,7 +153,7 @@ class ProductCreateServiceTest {
             .brandId(brand.getBrandId())
             .productName("썸네일 없음")
             .productInfo("썸네일이 빠진 경우")
-            .productGenderType(ProductGenderType.Type.ALL.name())
+            .productGenderType(ProductGenderType.ALL.name())
             .brandName(brand.getNameKo())
             .categoryPath(category.buildPath())
             .isAvailable(true)
@@ -188,7 +194,7 @@ class ProductCreateServiceTest {
             .brandId(brand.getBrandId())
             .productName("브랜드 검증")
             .productInfo("브랜드 불일치")
-            .productGenderType(ProductGenderType.Type.MEN.name())
+            .productGenderType(ProductGenderType.MEN.name())
             .brandName("잘못된 브랜드")
             .categoryPath(category.buildPath())
             .isAvailable(true)
@@ -221,7 +227,7 @@ class ProductCreateServiceTest {
             .brandId(brand.getBrandId())
             .productName("카테고리 검증")
             .productInfo("카테고리 불일치")
-            .productGenderType(ProductGenderType.Type.WOMEN.name())
+            .productGenderType(ProductGenderType.WOMEN.name())
             .brandName(brand.getNameKo())
             .categoryPath("잘못된/경로")
             .isAvailable(true)
@@ -262,7 +268,7 @@ class ProductCreateServiceTest {
         ProductService.ProductSearchCondition condition = ProductService.ProductSearchCondition.builder()
             .keyword("니트")
             .categoryIds(Collections.singletonList(1L))
-            .gender(ProductGenderType.Type.WOMEN)
+            .gender(ProductGenderType.WOMEN)
             .brandId(1L)
             .pageable(PageRequest.of(0, 20))
             .build();
@@ -286,7 +292,7 @@ class ProductCreateServiceTest {
         IntStream.range(0, 10).forEach(i -> {
             Category current = subCategories.get(i);
             OptionValue optionValue = prepareOptionValue("사이즈", "M" + i);
-            ProductGenderType.Type gender = (i % 2 == 0) ? ProductGenderType.Type.MEN : ProductGenderType.Type.WOMEN;
+            ProductGenderType gender = (i % 2 == 0) ? ProductGenderType.MEN : ProductGenderType.WOMEN;
             BigDecimal price = BigDecimal.valueOf(8000L + (long) i * 500L);
             String productName = "티셔츠 상품 " + i;
             String description = "티셔츠 상세 설명 " + i;
@@ -295,7 +301,7 @@ class ProductCreateServiceTest {
 
         ProductService.ProductSearchCondition condition = ProductService.ProductSearchCondition.builder()
             .categoryIds(List.of(top.getCategoryId()))
-            .gender(ProductGenderType.Type.MEN)
+            .gender(ProductGenderType.MEN)
             .priceSort(ProductService.ProductSearchCondition.PriceSort.LOWEST)
             .pageable(PageRequest.of(0, 10))
             .build();
@@ -328,7 +334,7 @@ class ProductCreateServiceTest {
             if (productName.contains("후드") || productInfo.contains("후드") || category.buildPath().contains("후드")) {
                 expectedNames.add(productName);
             }
-            createProduct(brand, category, optionValue, productName, ProductGenderType.Type.ALL,
+            createProduct(brand, category, optionValue, productName, ProductGenderType.ALL,
                 BigDecimal.valueOf(15000L + (long) i * 700L), productInfo);
         });
 
@@ -355,7 +361,7 @@ class ProductCreateServiceTest {
             .brand(brand)
             .productName("옵션 값 누락")
             .productInfo("옵션 값이 없는 경우")
-            .productGenderType(new ProductGenderType(ProductGenderType.Type.ALL))
+            .productGenderType(ProductGenderType.ALL)
             .brandName(brand.getNameKo())
             .categoryPath(category.buildPath())
             .isAvailable(true)
@@ -379,7 +385,7 @@ class ProductCreateServiceTest {
         Category category = prepareCategory("패딩");
         OptionValue optionValue = prepareOptionValue("사이즈", "FREE");
 
-        return createProduct(brand, category, optionValue, "샘플 상품", ProductGenderType.Type.ALL,
+    return createProduct(brand, category, optionValue, "샘플 상품", ProductGenderType.ALL,
             new BigDecimal("9900"), "테스트용");
     }
 
@@ -403,7 +409,7 @@ class ProductCreateServiceTest {
                                Category category,
                                OptionValue optionValue,
                                String productName,
-                               ProductGenderType.Type gender,
+                               ProductGenderType gender,
                                BigDecimal price,
                                String productInfo) {
         ProductCreateRequest request = ProductCreateRequest.builder()

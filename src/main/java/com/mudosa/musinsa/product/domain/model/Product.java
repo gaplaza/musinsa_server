@@ -2,7 +2,6 @@ package com.mudosa.musinsa.product.domain.model;
 
 import com.mudosa.musinsa.brand.domain.model.Brand;
 import com.mudosa.musinsa.common.domain.model.BaseEntity;
-import com.mudosa.musinsa.product.domain.vo.ProductGenderType;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -51,8 +50,8 @@ public class Product extends BaseEntity {
     @Column(name = "is_available", nullable = false)
     private Boolean isAvailable;
 
-    @Embedded
-    @AttributeOverride(name = "value", column = @Column(name = "product_gender_type", nullable = false))
+    @Enumerated(EnumType.STRING)
+    @Column(name = "product_gender_type", nullable = false)
     private ProductGenderType productGenderType;
 
     // 역정규화 브랜드이름 (조회)
@@ -63,9 +62,8 @@ public class Product extends BaseEntity {
     @Column(name = "category_path", nullable = false, length = 255)
     private String categoryPath;
 
-    
-        // 필수 값 검증 후 상품과 연관 컬렉션을 초기화하는 빌더 생성자이다.
-   @Builder
+    // 필수 값 검증 후 상품과 연관 컬렉션을 초기화하는 빌더 생성자이다.
+    @Builder
     public Product(Brand brand, String productName, String productInfo,
                    ProductGenderType productGenderType, String brandName, String categoryPath, Boolean isAvailable,
                    java.util.List<Image> images,
@@ -196,7 +194,7 @@ public class Product extends BaseEntity {
         if (productInfo == null || productInfo.trim().isEmpty()) {
             throw new IllegalArgumentException("상품 정보는 필수입니다.");
         }
-        if (productGenderType == null || productGenderType.getValue() == null) {
+        if (productGenderType == null) {
             throw new IllegalArgumentException("상품 성별 타입은 필수입니다.");
         }
         if (brandName == null || brandName.trim().isEmpty()) {
@@ -208,7 +206,7 @@ public class Product extends BaseEntity {
 
         this.productName = productName;
         this.productInfo = productInfo;
-        this.productGenderType = productGenderType;
+    this.productGenderType = productGenderType;
         this.brandName = brandName;
         this.categoryPath = categoryPath;
     }

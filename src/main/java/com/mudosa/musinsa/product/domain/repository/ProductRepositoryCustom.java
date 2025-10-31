@@ -1,7 +1,7 @@
 package com.mudosa.musinsa.product.domain.repository;
 
 import com.mudosa.musinsa.product.domain.model.Product;
-import com.mudosa.musinsa.product.domain.vo.ProductGenderType;
+import com.mudosa.musinsa.product.domain.model.ProductGenderType;
 
 import java.util.List;
 import java.util.Optional;
@@ -14,7 +14,7 @@ public interface ProductRepositoryCustom {
 
     // 조건값을 기반으로 상품 목록을 필터링해 반환한다.
     List<Product> findAllByFilters(List<String> categoryPaths,
-                                   ProductGenderType.Type gender,
+                                   ProductGenderType gender,
                                    String keyword,
                                    Long brandId);
 }

@@ -1,7 +1,7 @@
 package com.mudosa.musinsa.product.application.dto;
 
 import com.mudosa.musinsa.product.application.ProductService;
-import com.mudosa.musinsa.product.domain.vo.ProductGenderType;
+import com.mudosa.musinsa.product.domain.model.ProductGenderType;
 import jakarta.validation.constraints.Min;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -32,7 +32,7 @@ public class ProductSearchRequest {
 
     // 요청 값을 ProductSearchCondition으로 변환한다.
     public ProductService.ProductSearchCondition toCondition() {
-        ProductGenderType.Type genderType = parseGender();
+    ProductGenderType genderType = parseGender();
         ProductService.ProductSearchCondition.PriceSort sort = parsePriceSort();
         Pageable pageable = createPageable();
 
@@ -47,12 +47,12 @@ public class ProductSearchRequest {
     }
 
     // 문자열 성별 값을 ENUM으로 변환한다.
-    private ProductGenderType.Type parseGender() {
+    private ProductGenderType parseGender() {
         if (gender == null || gender.isBlank()) {
             return null;
         }
         try {
-            return ProductGenderType.Type.valueOf(gender.trim().toUpperCase(Locale.ROOT));
+            return ProductGenderType.valueOf(gender.trim().toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException ex) {
             return null;
         }
