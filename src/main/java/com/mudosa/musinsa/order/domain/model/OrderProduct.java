@@ -4,9 +4,6 @@ import com.mudosa.musinsa.common.domain.model.BaseEntity;
 import com.mudosa.musinsa.product.domain.model.ProductOption;
 import com.mudosa.musinsa.event.model.Event;
 import com.mudosa.musinsa.event.model.EventOption;
-import com.mudosa.musinsa.product.domain.model.Product;
-import com.mudosa.musinsa.product.domain.model.ProductOption;
-import com.mudosa.musinsa.user.domain.model.User;
 
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -32,9 +29,6 @@ public class OrderProduct extends BaseEntity {
 
     @Column(name = "user_id", nullable = false)
     private Long userId;
-
-    @Column(name = "product_id", nullable = false)
-    private Long productId;
 
     //재고 차감을 위해 필요함
     @ManyToOne(fetch = FetchType.LAZY)
@@ -67,10 +61,13 @@ public class OrderProduct extends BaseEntity {
         return productOption.getProductOptionId();  // productOption 객체의 ID 반환
     }
 
-    // OrderProduct 객체를 생성하는 정적 팩토리 메서드
+    // 양방향 연관관계 설정용 메서드
+    void setOrders(Orders orders) {
+        this.orders = orders;
+    }
+
     public static OrderProduct create(
             Long userId,
-            Long productId,
             ProductOption productOption,
             BigDecimal productPrice,
             Integer productQuantity,
@@ -80,7 +77,6 @@ public class OrderProduct extends BaseEntity {
 
         OrderProduct orderProduct = new OrderProduct();
         orderProduct.userId = userId;
-        orderProduct.productId = productId;
         orderProduct.productOption = productOption;
         orderProduct.productPrice = productPrice;
         orderProduct.productQuantity = productQuantity;

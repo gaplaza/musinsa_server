@@ -36,6 +36,9 @@ public enum ErrorCode {
     INVALID_ORDER_STATUS("40004","유효하지 않은 주문 상태 입니다.", HttpStatus.NOT_FOUND ),
     INVALID_ORDER_STATUS_TRANSITION("40005","허용되지 않는 주문 상태입니다.", HttpStatus.BAD_REQUEST ),
     INVALID_DISCOUNT_AMOUNT("40006","할인 적용이 유효하지 않습니다",HttpStatus.BAD_REQUEST ),
+    ORDER_INVALID_AMOUNT("40007","주문 상품 가격이 유효하지 않습니다", HttpStatus.BAD_REQUEST),
+    PRODUCT_OPTION_NOT_FOUND("40008", "상품 옵션을 찾을 수 없습니다", HttpStatus.NOT_FOUND),
+    ORDER_INSUFFICIENT_STOCK("40009", "재고가 부족한 상품이 있습니다", HttpStatus.BAD_REQUEST),
     
     //inventory
     INVENTORY_NOT_FOUND("50001", "재고 정보를 찾을 수 없습니다", HttpStatus.NOT_FOUND),

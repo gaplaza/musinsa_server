@@ -3,10 +3,16 @@ package com.mudosa.musinsa.order.application;
 import com.mudosa.musinsa.coupon.domain.service.MemberCouponService;
 import com.mudosa.musinsa.exception.BusinessException;
 import com.mudosa.musinsa.exception.ErrorCode;
+import com.mudosa.musinsa.order.application.dto.OrderCreateItem;
+import com.mudosa.musinsa.order.application.dto.OrderCreateRequest;
+import com.mudosa.musinsa.order.application.dto.OrderCreateResponse;
+import com.mudosa.musinsa.order.domain.model.OrderProduct;
 import com.mudosa.musinsa.order.domain.model.Orders;
 import com.mudosa.musinsa.order.domain.repository.OrderRepository;
 import com.mudosa.musinsa.payment.application.dto.OrderValidationResult;
 import com.mudosa.musinsa.product.application.CartService;
+import com.mudosa.musinsa.product.domain.model.ProductOption;
+import com.mudosa.musinsa.product.domain.repository.ProductOptionRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -14,6 +20,7 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 
 @Slf4j
@@ -24,6 +31,7 @@ public class OrderService {
     private final OrderRepository orderRepository;
     private final CartService cartService;
     private final MemberCouponService memberCouponService;
+    private final ProductOptionRepository productOptionRepository;
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void completeOrder(Long orderId) {
@@ -220,5 +228,159 @@ public class OrderService {
                     "쿠폰 복구에 실패했습니다: " + e.getMessage()
             );
         }
+    }
+
+    @Transactional
+    public OrderCreateResponse createPendingOrder(OrderCreateRequest request) {
+        log.info("주문 생성 시작 - userId: {}, itemCount: {}",
+                request.getUserId(), request.getItems().size());
+
+        /* 1. 상품 옵션 조회 */
+        List<Long> productOptionIds = request.getItems().stream()
+                .map(OrderCreateItem::getProductOptionId)
+                .toList();
+
+        List<ProductOption> productOptions = productOptionRepository.findAllByIdWithInventory(productOptionIds);
+
+        // 요청된 모든 상품 옵션이 존재하는지 확인
+        if (productOptions.size() != productOptionIds.size()) {
+            List<Long> foundIds = productOptions.stream()
+                    .map(ProductOption::getProductOptionId)
+                    .toList();
+            List<Long> notFoundIds = productOptionIds.stream()
+                    .filter(id -> !foundIds.contains(id))
+                    .toList();
+
+            log.error("존재하지 않는 상품 옵션: {}", notFoundIds);
+            throw new BusinessException(ErrorCode.PRODUCT_OPTION_NOT_FOUND,
+                    "존재하지 않는 상품 옵션: " + notFoundIds);
+        }
+
+        /* 2. 재고 확인 */
+        List<OrderCreateResponse.InsufficientStockItem> insufficientStockItems =
+                checkStockAvailability(request.getItems(), productOptions);
+
+        // 재고가 부족한 상품이 있으면 즉시 응답 반환
+        if (!insufficientStockItems.isEmpty()) {
+            log.warn("재고 부족 - 부족한 상품 수: {}", insufficientStockItems.size());
+            return OrderCreateResponse.insufficientStock(insufficientStockItems);
+        }
+
+        /* 3. 총 금액 계산 */
+        BigDecimal totalPrice = calculateTotalPrice(request.getItems(), productOptions);
+        log.info("총 금액 계산 완료 - totalPrice: {}", totalPrice);
+
+        /* 4. 주문 생성 (status: PENDING) */
+        Orders order = Orders.create(
+                totalPrice,
+                request.getUserId(),
+                request.getCouponId()
+        );
+
+        /* 5. 주문 아이템 생성 */
+        List<OrderProduct> orderProducts = createOrderProducts(
+                request.getItems(),
+                productOptions,
+                request.getUserId()
+        );
+
+        order.addOrderProducts(orderProducts);
+
+        /* 6. 주문 저장 */
+        Orders savedOrder = orderRepository.save(order);
+        log.info("주문 생성 완료 - orderId: {}, orderNo: {}, totalPrice: {}",
+                savedOrder.getId(), savedOrder.getOrderNo(), savedOrder.getTotalPrice());
+
+        return OrderCreateResponse.success(savedOrder.getId(), savedOrder.getOrderNo());
+    }
+
+    private List<OrderCreateResponse.InsufficientStockItem> checkStockAvailability(
+            List<OrderCreateItem> items,
+            List<ProductOption> productOptions) {
+
+        List<OrderCreateResponse.InsufficientStockItem> insufficientItems = new ArrayList<>();
+
+        for (OrderCreateItem item : items) {
+            ProductOption productOption = productOptions.stream()
+                    .filter(po -> po.getProductOptionId().equals(item.getProductOptionId()))
+                    .findFirst()
+                    .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_OPTION_NOT_FOUND));
+
+            // 재고 수량 확인
+            Integer availableStock = productOption.getInventory().getStockQuantity().getValue();
+            Integer requestedQuantity = item.getQuantity();
+
+            if (availableStock < requestedQuantity) {
+                log.warn("재고 부족 - productOptionId: {}, 요청: {}, 가능: {}",
+                        item.getProductOptionId(), requestedQuantity, availableStock);
+
+                insufficientItems.add(new OrderCreateResponse.InsufficientStockItem(
+                        item.getProductOptionId(),
+                        requestedQuantity,
+                        availableStock
+                ));
+            }
+
+            // 상품 옵션 활성화 여부 확인
+            if (!productOption.getIsAvailable()) {
+                log.warn("비활성화된 상품 옵션 - productOptionId: {}", item.getProductOptionId());
+                insufficientItems.add(new OrderCreateResponse.InsufficientStockItem(
+                        item.getProductOptionId(),
+                        requestedQuantity,
+                        0
+                ));
+            }
+        }
+
+        return insufficientItems;
+    }
+
+    private BigDecimal calculateTotalPrice(
+            List<OrderCreateItem> items,
+            List<ProductOption> productOptions) {
+
+        BigDecimal totalPrice = BigDecimal.ZERO;
+
+        for (OrderCreateItem item : items) {
+            ProductOption productOption = productOptions.stream()
+                    .filter(po -> po.getProductOptionId().equals(item.getProductOptionId()))
+                    .findFirst()
+                    .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_OPTION_NOT_FOUND));
+
+            BigDecimal itemPrice = productOption.getProductPrice().getAmount()
+                    .multiply(BigDecimal.valueOf(item.getQuantity()));
+            totalPrice = totalPrice.add(itemPrice);
+        }
+
+        return totalPrice;
+    }
+
+    private List<OrderProduct> createOrderProducts(
+            List<OrderCreateItem> items,
+            List<ProductOption> productOptions,
+            Long userId) {
+
+        List<OrderProduct> orderProducts = new ArrayList<>();
+
+        for (OrderCreateItem item : items) {
+            ProductOption productOption = productOptions.stream()
+                    .filter(po -> po.getProductOptionId().equals(item.getProductOptionId()))
+                    .findFirst()
+                    .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_OPTION_NOT_FOUND));
+
+            OrderProduct orderProduct = OrderProduct.create(
+                    userId,
+                    productOption,
+                    productOption.getProductPrice().getAmount(),
+                    item.getQuantity(),
+                    null,  // event
+                    null,  // eventOption
+                    null   // limitScope
+            );
+
+            orderProducts.add(orderProduct);
+        }
+
+        return orderProducts;
     }
 }

@@ -25,12 +25,10 @@ public class ProductOption extends BaseEntity {
     @Column(name = "product_option_id")
     private Long productOptionId;
 
-    //TODO: ProductOption에서 Product를 바라봐야 하는 이유
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "product_id", nullable = false)
     private Product product;
 
-    //ProductOption이 Inventory를 바라봐야함
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "inventory_id", nullable = false, unique = true)
     private Inventory inventory;
@@ -63,7 +61,6 @@ public class ProductOption extends BaseEntity {
         this.inventory = inventory;
     }
 
-    // 패키지 private: 상품 참조 설정 (Product 애그리거트에서만 사용)
     void setProduct(Product product) {
         this.product = product;
     }
