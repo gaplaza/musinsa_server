@@ -37,14 +37,12 @@ class PaymentProcessorTest {
 		// given
 		PaymentConfirmRequest request = PaymentConfirmRequest.builder()
 				.paymentKey("test_key")
-				.orderId("ORDER_001")
 				.amount(10000L)
 				.pgProvider("TOSS")
 				.build();
 
 		PaymentConfirmResponse expectedResponse = PaymentConfirmResponse.builder()
 				.paymentKey("test_key")
-				.orderId("ORDER_001")
 				.status("DONE")
 				.pgProvider("TOSS")
 				.build();
@@ -58,7 +56,6 @@ class PaymentProcessorTest {
 		// then
 		assertThat(response).isNotNull();
 		assertThat(response.getPaymentKey()).isEqualTo("test_key");
-		assertThat(response.getOrderId()).isEqualTo("ORDER_001");
 		assertThat(response.getStatus()).isEqualTo("DONE");
 		assertThat(response.getPgProvider()).isEqualTo("TOSS");
 
@@ -72,7 +69,6 @@ class PaymentProcessorTest {
 		// given
 		PaymentConfirmRequest request = PaymentConfirmRequest.builder()
 				.paymentKey("test_key")
-				.orderId("ORDER_001")
 				.amount(10000L)
 				.pgProvider("INVALID_PG")
 				.build();
@@ -93,7 +89,6 @@ class PaymentProcessorTest {
 		// given
 		PaymentConfirmRequest request = PaymentConfirmRequest.builder()
 				.paymentKey("test_key")
-				.orderId("ORDER_001")
 				.amount(10000L)
 				.pgProvider("TOSS")
 				.build();

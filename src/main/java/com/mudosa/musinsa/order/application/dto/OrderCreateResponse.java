@@ -27,11 +27,4 @@ public class OrderCreateResponse {
         return insufficientStockItems != null && !insufficientStockItems.isEmpty();
     }
 
-    @Getter
-    @AllArgsConstructor
-    public static class InsufficientStockItem {
-        private Long productOptionId;
-        private Integer requestedQuantity;
-        private Integer availableQuantity;
-    }
 }

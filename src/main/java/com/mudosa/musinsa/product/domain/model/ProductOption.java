@@ -40,9 +40,6 @@ public class ProductOption extends BaseEntity {
     @OneToMany(mappedBy = "productOption", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<ProductOptionValue> productOptionValue = new ArrayList<>();
 
-    @Column(name = "is_available", nullable = false)
-    private Boolean isAvailable;
-
     @Builder
     public ProductOption(Product product, Money productPrice, Inventory inventory) {
         // 엔티티 기본 무결성 검증
@@ -84,9 +81,6 @@ public class ProductOption extends BaseEntity {
     }
 
     public void validateAvailable() {
-        if (!this.isAvailable) {
-            throw new BusinessException(ErrorCode.PRODUCT_OPTION_NOT_AVAILABLE);
-        }
 
         if (this.inventory == null || !this.inventory.getIsAvailable()) {
             throw new BusinessException(ErrorCode.INVENTORY_NOT_AVAILABLE);
