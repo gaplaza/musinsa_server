@@ -88,7 +88,7 @@ public class ChatController {
 
   /**
    * 채팅방 정보 조회
-   * GET /api/chat/info
+   * GET /api/chat/1/info
    */
   @GetMapping("/{chatId}/info")
   public ResponseEntity<ChatRoomInfoResponse> getChatInfo(@PathVariable Long chatId, @RequestParam Long userId) {
@@ -97,12 +97,31 @@ public class ChatController {
 
 
   /**
-   * 채팅방 정보 조회
-   * GET /api/chat/info
+   * 채팅방 참가
+   * POST /api/chat/1/participants
    */
   @PostMapping("/{chatId}/participants")
   public ResponseEntity<ChatPartResponse> addParticipant(@PathVariable Long chatId, @RequestParam Long userId) {
     return ResponseEntity.ok(chatService.addParticipant(chatId, userId));
+  }
+
+  /**
+   * 채팅방 나가기
+   * PATCH /api/chat/1/leave
+   */
+  @PatchMapping("/{chatId}/leave")
+  public ResponseEntity<List<ChatRoomInfoResponse>> leaveChat(@PathVariable Long chatId, @RequestParam Long userId) {
+    chatService.leaveChat(chatId, userId);
+    return ResponseEntity.ok(chatService.getChatRoomByUserId(userId));
+  }
+
+  /**
+   * 나의 참가 채팅방 조회
+   * GET /api/chat/1/my
+   */
+  @GetMapping("/my")
+  public ResponseEntity<List<ChatRoomInfoResponse>> getMyChat(@RequestParam Long userId) {
+    return ResponseEntity.ok(chatService.getChatRoomByUserId(userId));
   }
 
 
