@@ -1,7 +1,7 @@
 package com.mudosa.musinsa.product.domain.repository;
 
 import com.mudosa.musinsa.product.domain.model.Product;
-import com.mudosa.musinsa.product.domain.vo.ProductGenderType;
+import com.mudosa.musinsa.product.domain.model.ProductGenderType;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.TypedQuery;
@@ -48,7 +48,7 @@ public class ProductRepositoryImpl implements ProductRepositoryCustom {
     // 검색 조건을 Criteria API로 조합해 상품 목록을 조회한다.
     @Override
     public List<Product> findAllByFilters(List<String> categoryPaths,
-                                          ProductGenderType.Type gender,
+                                          ProductGenderType gender,
                                           String keyword,
                                           Long brandId) {
         CriteriaBuilder cb = entityManager.getCriteriaBuilder();
@@ -58,7 +58,7 @@ public class ProductRepositoryImpl implements ProductRepositoryCustom {
         List<Predicate> predicates = new ArrayList<>();
 
         if (gender != null) {
-            Expression<ProductGenderType.Type> genderPath = product.get("productGenderType").get("value");
+            Expression<ProductGenderType> genderPath = product.get("productGenderType");
             predicates.add(cb.equal(genderPath, gender));
         }
 

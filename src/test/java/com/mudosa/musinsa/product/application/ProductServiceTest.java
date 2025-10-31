@@ -7,11 +7,11 @@ import com.mudosa.musinsa.exception.BusinessException;
 import com.mudosa.musinsa.product.application.dto.ProductDetailResponse;
 import com.mudosa.musinsa.product.application.dto.ProductUpdateRequest;
 import com.mudosa.musinsa.product.domain.model.Product;
+import com.mudosa.musinsa.product.domain.model.ProductGenderType;
 import com.mudosa.musinsa.product.domain.repository.CategoryRepository;
 import com.mudosa.musinsa.product.domain.repository.OptionValueRepository;
 import com.mudosa.musinsa.product.domain.repository.ProductLikeRepository;
 import com.mudosa.musinsa.product.domain.repository.ProductRepository;
-import com.mudosa.musinsa.product.domain.vo.ProductGenderType;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -62,7 +62,7 @@ class ProductServiceTest {
             .brand(brand)
             .productName("기존 상품")
             .productInfo("기존 설명")
-            .productGenderType(new ProductGenderType(ProductGenderType.Type.MEN))
+            .productGenderType(ProductGenderType.MEN)
             .brandName("브랜드")
             .categoryPath("상의/티셔츠")
             .isAvailable(true)
@@ -88,7 +88,7 @@ class ProductServiceTest {
 
         assertThat(response.getProductName()).isEqualTo("수정된 상품");
         assertThat(product.getProductName()).isEqualTo("수정된 상품");
-        assertThat(product.getProductGenderType().getValue()).isEqualTo(ProductGenderType.Type.WOMEN);
+    assertThat(product.getProductGenderType()).isEqualTo(ProductGenderType.WOMEN);
         assertThat(product.getImages()).hasSize(1);
     }
 
@@ -106,7 +106,7 @@ class ProductServiceTest {
             .brand(brand)
             .productName("기존 상품")
             .productInfo("기존 설명")
-            .productGenderType(new ProductGenderType(ProductGenderType.Type.MEN))
+            .productGenderType(ProductGenderType.MEN)
             .brandName("브랜드")
             .categoryPath("상의/티셔츠")
             .isAvailable(true)
@@ -145,7 +145,7 @@ class ProductServiceTest {
             .brand(brand)
             .productName("상품")
             .productInfo("설명")
-            .productGenderType(new ProductGenderType(ProductGenderType.Type.MEN))
+            .productGenderType(ProductGenderType.MEN)
             .brandName("브랜드")
             .categoryPath("상의/티셔츠")
             .isAvailable(true)

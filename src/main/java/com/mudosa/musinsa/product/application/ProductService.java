@@ -11,6 +11,7 @@ import com.mudosa.musinsa.product.domain.model.Inventory;
 import com.mudosa.musinsa.product.domain.model.OptionName;
 import com.mudosa.musinsa.product.domain.model.OptionValue;
 import com.mudosa.musinsa.product.domain.model.Product;
+import com.mudosa.musinsa.product.domain.model.ProductGenderType;
 import com.mudosa.musinsa.product.domain.model.ProductLike;
 import com.mudosa.musinsa.product.domain.model.ProductOption;
 import com.mudosa.musinsa.product.domain.model.ProductOptionValue;
@@ -18,7 +19,6 @@ import com.mudosa.musinsa.product.domain.repository.CategoryRepository;
 import com.mudosa.musinsa.product.domain.repository.OptionValueRepository;
 import com.mudosa.musinsa.product.domain.repository.ProductLikeRepository;
 import com.mudosa.musinsa.product.domain.repository.ProductRepository;
-import com.mudosa.musinsa.product.domain.vo.ProductGenderType;
 import com.mudosa.musinsa.product.domain.vo.StockQuantity;
 import com.mudosa.musinsa.brand.domain.repository.BrandMemberRepository;
 import com.mudosa.musinsa.exception.BusinessException;
@@ -114,7 +114,7 @@ public class ProductService {
     public Long createProduct(ProductCreateRequest request,
                               Brand brand,
                               Category category) {
-        ProductGenderType.Type genderType = parseGenderType(request.getProductGenderType());
+    ProductGenderType genderType = parseGenderType(request.getProductGenderType());
 
         validateDenormalizedFields(request, brand, category);
 
@@ -136,7 +136,7 @@ public class ProductService {
             .brand(brand)
             .productName(request.getProductName())
             .productInfo(request.getProductInfo())
-            .productGenderType(new ProductGenderType(genderType))
+            .productGenderType(genderType)
             .brandName(request.getBrandName())
             .categoryPath(request.getCategoryPath())
             .isAvailable(request.getIsAvailable())
@@ -254,8 +254,8 @@ public class ProductService {
             .brandName(product.getBrandName())
             .productName(product.getProductName())
             .productInfo(product.getProductInfo())
-            .productGenderType(product.getProductGenderType() != null && product.getProductGenderType().getValue() != null
-                ? product.getProductGenderType().getValue().name()
+            .productGenderType(product.getProductGenderType() != null
+                ? product.getProductGenderType().name()
                 : null)
             .isAvailable(product.getIsAvailable())
             .categoryPath(product.getCategoryPath())
@@ -271,7 +271,7 @@ public class ProductService {
         Pageable pageable = condition != null ? condition.getPageable() : Pageable.unpaged();
 
         List<Long> categoryIds = condition != null ? condition.getCategoryIds() : Collections.emptyList();
-        ProductGenderType.Type gender = condition != null ? condition.getGender() : null;
+    ProductGenderType gender = condition != null ? condition.getGender() : null;
         String keyword = condition != null ? condition.getKeyword() : null;
         Long brandId = condition != null ? condition.getBrandId() : null;
         ProductSearchCondition.PriceSort priceSort = condition != null ? condition.getPriceSort() : null;
@@ -340,8 +340,7 @@ public class ProductService {
 
         verifyBrandMember(product, userId);
 
-        ProductGenderType.Type genderType = parseGenderType(request.getProductGenderType());
-        ProductGenderType productGenderType = new ProductGenderType(genderType);
+    ProductGenderType genderType = parseGenderType(request.getProductGenderType());
 
         String brandName = request.getBrandName() != null
             ? request.getBrandName()
@@ -350,7 +349,7 @@ public class ProductService {
         product.updateBasicInfo(
             request.getProductName(),
             request.getProductInfo(),
-            productGenderType,
+            genderType,
             brandName,
             request.getCategoryPath()
         );
@@ -440,7 +439,7 @@ public class ProductService {
     public static class ProductSearchCondition {
         private final String keyword;
         private final List<Long> categoryIds;
-        private final ProductGenderType.Type gender;
+    private final ProductGenderType gender;
         private final Long brandId;
         private final Pageable pageable;
         private final PriceSort priceSort;
@@ -517,8 +516,8 @@ public class ProductService {
             .brandName(product.getBrandName())
             .productName(product.getProductName())
             .productInfo(product.getProductInfo())
-            .productGenderType(product.getProductGenderType() != null && product.getProductGenderType().getValue() != null
-                ? product.getProductGenderType().getValue().name()
+            .productGenderType(product.getProductGenderType() != null
+                ? product.getProductGenderType().name()
                 : null)
             .isAvailable(product.getIsAvailable())
             .hasStock(hasStock)
@@ -540,9 +539,9 @@ public class ProductService {
         }
     }
 
-    private ProductGenderType.Type parseGenderType(String gender) {
+    private ProductGenderType parseGenderType(String gender) {
         try {
-            return ProductGenderType.Type.valueOf(gender.trim().toUpperCase(java.util.Locale.ROOT));
+            return ProductGenderType.valueOf(gender.trim().toUpperCase(java.util.Locale.ROOT));
         } catch (IllegalArgumentException | NullPointerException ex) {
             throw new BusinessException(ErrorCode.VALIDATION_ERROR, "지원하지 않는 상품 성별 타입입니다.");
         }

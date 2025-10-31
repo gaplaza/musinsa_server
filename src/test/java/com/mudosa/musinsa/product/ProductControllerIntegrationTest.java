@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mudosa.musinsa.brand.domain.model.Brand;
 import com.mudosa.musinsa.brand.domain.repository.BrandRepository;
+import com.mudosa.musinsa.notification.domain.service.FcmService;
 import com.mudosa.musinsa.product.application.dto.ProductCreateRequest;
 import com.mudosa.musinsa.product.domain.model.Category;
 import com.mudosa.musinsa.product.domain.model.OptionName;
@@ -13,7 +14,7 @@ import com.mudosa.musinsa.product.domain.repository.OptionNameRepository;
 import com.mudosa.musinsa.product.domain.repository.OptionValueRepository;
 import com.mudosa.musinsa.product.domain.repository.ProductLikeRepository;
 import com.mudosa.musinsa.product.domain.repository.ProductRepository;
-import com.mudosa.musinsa.product.domain.vo.ProductGenderType;
+import com.mudosa.musinsa.product.domain.model.ProductGenderType;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
@@ -21,6 +22,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
@@ -41,6 +43,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 class ProductControllerIntegrationTest {
+
+    @MockBean
+    FcmService fcmService;
 
     @Autowired
     private MockMvc mockMvc;
@@ -91,7 +96,7 @@ class ProductControllerIntegrationTest {
             .brandId(brand.getBrandId())
             .productName("검색 상품 A")
             .productInfo("검색용 상품 A")
-            .productGenderType(ProductGenderType.Type.ALL.name())
+            .productGenderType(ProductGenderType.ALL.name())
             .brandName(brand.getNameKo())
             .categoryPath(category.buildPath())
             .isAvailable(true)
@@ -112,7 +117,7 @@ class ProductControllerIntegrationTest {
             .brandId(brand.getBrandId())
             .productName("검색 상품 B")
             .productInfo("검색용 상품 B")
-            .productGenderType(ProductGenderType.Type.ALL.name())
+            .productGenderType(ProductGenderType.ALL.name())
             .brandName(brand.getNameKo())
             .categoryPath(category.buildPath())
             .isAvailable(true)
@@ -207,7 +212,7 @@ class ProductControllerIntegrationTest {
             .brandId(999L)
             .productName("브랜드 없음")
             .productInfo("브랜드가 없는 경우")
-            .productGenderType(ProductGenderType.Type.MEN.name())
+            .productGenderType(ProductGenderType.MEN.name())
             .brandName("없는 브랜드")
             .categoryPath(category.buildPath())
             .isAvailable(true)
@@ -248,7 +253,7 @@ class ProductControllerIntegrationTest {
             .brandId(brand.getBrandId())
             .productName("")
             .productInfo("상품명 누락")
-            .productGenderType(ProductGenderType.Type.WOMEN.name())
+            .productGenderType(ProductGenderType.WOMEN.name())
             .brandName(brand.getNameKo())
             .categoryPath(category.buildPath())
             .isAvailable(true)
@@ -288,7 +293,7 @@ class ProductControllerIntegrationTest {
             .brandId(brand.getBrandId())
             .productName("옵션 없음")
             .productInfo("존재하지 않는 옵션")
-            .productGenderType(ProductGenderType.Type.ALL.name())
+            .productGenderType(ProductGenderType.ALL.name())
             .brandName(brand.getNameKo())
             .categoryPath(category.buildPath())
             .isAvailable(true)
@@ -339,7 +344,7 @@ class ProductControllerIntegrationTest {
             .brandId(brand.getBrandId())
             .productName("썸네일 중복")
             .productInfo("썸네일이 두 개")
-            .productGenderType(ProductGenderType.Type.MEN.name())
+            .productGenderType(ProductGenderType.MEN.name())
             .brandName(brand.getNameKo())
             .categoryPath(category.buildPath())
             .isAvailable(true)
@@ -379,7 +384,7 @@ class ProductControllerIntegrationTest {
             .brandId(brand.getBrandId())
             .productName("테스트 상품")
             .productInfo("테스트 상품 설명")
-            .productGenderType(ProductGenderType.Type.ALL.name())
+            .productGenderType(ProductGenderType.ALL.name())
             .brandName(brand.getNameKo())
             .categoryPath(category.buildPath())
             .isAvailable(true)
