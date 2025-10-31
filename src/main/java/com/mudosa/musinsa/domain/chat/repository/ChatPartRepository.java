@@ -19,11 +19,6 @@ public interface ChatPartRepository extends JpaRepository<ChatPart, Long> {
   // 활성 여부 exists (퇴장 전)
   boolean existsByChatRoom_ChatIdAndUser_IdAndLeftAtIsNull(Long chatId, Long userId);
 
-  // 이력 존재 여부
-  boolean existsByChatRoom_ChatIdAndUser_Id(Long chatId, Long userId);
 
-  // (선택) 활성 목록/카운트
-  List<ChatPart> findByChatRoom_ChatIdAndLeftAtIsNull(Long chatId);
-
-  long countByChatRoom_ChatIdAndLeftAtIsNull(Long chatId);
+  Optional<ChatPart> findByChatRoom_ChatIdAndUserIdAndLeftAtIsNull(Long chatId, Long userId);
 }
