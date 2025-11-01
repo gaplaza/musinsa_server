@@ -276,8 +276,8 @@ class ProductControllerIntegrationTest {
     }
 
     @Test
-    @DisplayName("존재하지 않는 옵션 값으로 상품 생성 시 500을 반환한다")
-    void createProduct_optionValueNotFound_returnsServerError() throws Exception {
+    @DisplayName("존재하지 않는 옵션 값으로 상품 생성 시 400을 반환한다")
+    void createProduct_optionValueNotFound_returnsBadRequest() throws Exception {
         Brand brand = brandRepository.save(Brand.create("무도사", "MUDOSA", new BigDecimal("10.00")));
         Category category = categoryRepository.save(Category.builder()
             .categoryName("니트")
@@ -308,9 +308,9 @@ class ProductControllerIntegrationTest {
         mockMvc.perform(post("/api/products")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
-            .andExpect(status().isInternalServerError())
+            .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.success").value(false))
-            .andExpect(jsonPath("$.errorCode").value("IllegalArgumentException"))
+            .andExpect(jsonPath("$.errorCode").value("10001"))
             .andExpect(jsonPath("$.message").value(Matchers.containsString("존재하지 않는 옵션 값 ID")));
     }
 
@@ -326,7 +326,7 @@ class ProductControllerIntegrationTest {
 
     @Test
     @DisplayName("썸네일이 중복되면 상품 생성이 실패한다")
-    void createProduct_duplicateThumbnail_returnsServerError() throws Exception {
+    void createProduct_duplicateThumbnail_returnsBadRequest() throws Exception {
         Brand brand = brandRepository.save(Brand.create("무도사", "MUDOSA", new BigDecimal("10.00")));
         Category category = categoryRepository.save(Category.builder()
             .categoryName("코트")
@@ -363,9 +363,9 @@ class ProductControllerIntegrationTest {
         mockMvc.perform(post("/api/products")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
-            .andExpect(status().isInternalServerError())
+            .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.success").value(false))
-            .andExpect(jsonPath("$.errorCode").value("IllegalArgumentException"))
+            .andExpect(jsonPath("$.errorCode").value("10001"))
             .andExpect(jsonPath("$.message").value(Matchers.containsString("썸네일은 하나만")));
     }
 

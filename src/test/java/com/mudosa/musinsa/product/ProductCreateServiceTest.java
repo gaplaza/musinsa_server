@@ -2,6 +2,7 @@ package com.mudosa.musinsa.product;
 
 import com.mudosa.musinsa.brand.domain.model.Brand;
 import com.mudosa.musinsa.brand.domain.repository.BrandRepository;
+import com.mudosa.musinsa.exception.BusinessException;
 import com.mudosa.musinsa.notification.domain.service.FcmService;
 import com.mudosa.musinsa.product.application.ProductService;
 import com.mudosa.musinsa.product.application.dto.ProductCreateRequest;
@@ -207,8 +208,8 @@ class ProductCreateServiceTest {
                 .build()))
             .build();
 
-    assertThatThrownBy(() -> productService.createProduct(request, brand, category))
-            .isInstanceOf(IllegalArgumentException.class)
+        assertThatThrownBy(() -> productService.createProduct(request, brand, category))
+            .isInstanceOf(BusinessException.class)
             .hasMessageContaining("브랜드 정보가 일치하지 않습니다");
     }
 
@@ -239,8 +240,8 @@ class ProductCreateServiceTest {
                 .build()))
             .build();
 
-    assertThatThrownBy(() -> productService.createProduct(request, brand, category))
-            .isInstanceOf(IllegalArgumentException.class)
+        assertThatThrownBy(() -> productService.createProduct(request, brand, category))
+            .isInstanceOf(BusinessException.class)
             .hasMessageContaining("카테고리 경로가 일치하지 않습니다");
     }
 
@@ -369,7 +370,7 @@ class ProductCreateServiceTest {
             .build();
 
         assertThatThrownBy(() -> productService.createProduct(command))
-            .isInstanceOf(IllegalArgumentException.class)
+            .isInstanceOf(BusinessException.class)
             .hasMessageContaining("존재하지 않는 옵션 값 ID");
     }
 

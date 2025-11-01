@@ -144,11 +144,13 @@ public class ProductService {
                                             Brand brand,
                                             Category category) {
         if (!brand.getNameKo().equals(request.getBrandName())) {
-            throw new IllegalArgumentException("브랜드 정보가 일치하지 않습니다. brandId=" + brand.getBrandId());
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR,
+                "브랜드 정보가 일치하지 않습니다. brandId=" + brand.getBrandId());
         }
 
         if (category == null || !category.buildPath().equals(request.getCategoryPath())) {
-            throw new IllegalArgumentException("카테고리 경로가 일치하지 않습니다. categoryPath=" + request.getCategoryPath());
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR,
+                "카테고리 경로가 일치하지 않습니다. categoryPath=" + request.getCategoryPath());
         }
     }
 
@@ -170,7 +172,8 @@ public class ProductService {
             if (optionValueMap.size() != optionValueIds.size()) {
                 Set<Long> missingIds = new HashSet<>(optionValueIds);
                 missingIds.removeAll(optionValueMap.keySet());
-                throw new IllegalArgumentException("존재하지 않는 옵션 값 ID가 포함되어 있습니다: " + missingIds);
+                throw new BusinessException(ErrorCode.VALIDATION_ERROR,
+                    "존재하지 않는 옵션 값 ID가 포함되어 있습니다: " + missingIds);
             }
 
             return optionValueMap;
@@ -397,8 +400,8 @@ public class ProductService {
     @Builder
     public static class ProductSearchCondition {
         private final String keyword;
-    private final List<String> categoryPaths;
-    private final ProductGenderType gender;
+        private final List<String> categoryPaths;
+        private final ProductGenderType gender;
         private final Long brandId;
         private final Pageable pageable;
         private final PriceSort priceSort;
