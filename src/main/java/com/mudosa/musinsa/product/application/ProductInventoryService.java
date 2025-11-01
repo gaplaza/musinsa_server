@@ -60,7 +60,17 @@ public class ProductInventoryService {
         inventoryService.addStock(productOption.getProductOptionId(), request.getQuantity());
     }
 
-    // 옵션 재고 수량을 직접 덮어쓴다.
+    // 옵션 재고를 감소시킨다.
+    @Transactional
+    public void subtractStock(Long brandId,
+                              Long productId,
+                              Long userId,
+                              StockAdjustmentRequest request) {
+        ProductOption productOption = loadProductOptionForBrand(brandId, productId, userId, request.getProductOptionId());
+
+        inventoryService.subtractStock(productOption.getProductOptionId(), request.getQuantity());
+    }
+
     // 상품 전체 판매 가능 상태를 변경한다.
     @Transactional
     public void updateProductAvailability(Long brandId,

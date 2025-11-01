@@ -38,6 +38,16 @@ public class ProductInventoryController {
         return ResponseEntity.noContent().build();
     }
 
+    // 상품 옵션 재고 차감 (출고)
+    @PostMapping("/inventory/decrease")
+    public ResponseEntity<Void> decreaseStock(@PathVariable Long brandId,
+                                              @PathVariable Long productId,
+                                              @RequestHeader("X-USER-ID") Long userId,
+                                              @Valid @RequestBody StockAdjustmentRequest request) {
+        productInventoryService.subtractStock(brandId, productId, userId, request);
+        return ResponseEntity.noContent().build();
+    }
+
     // 상품 전체 판매 가능 상태 변경
     @PatchMapping("/availability")
     public ResponseEntity<Void> changeProductAvailability(@PathVariable Long brandId,
