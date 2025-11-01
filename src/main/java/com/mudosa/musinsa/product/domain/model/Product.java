@@ -85,10 +85,10 @@ public class Product extends BaseEntity {
         }
         
         this.brand = brand;
-    this.productName = productName;
-    this.productInfo = productInfo;
-    this.productGenderType = productGenderType;
-    this.brandName = brandName;
+        this.productName = productName;
+        this.productInfo = productInfo;
+        this.productGenderType = productGenderType;
+        this.brandName = brandName;
         this.categoryPath = categoryPath;
         this.isAvailable = isAvailable != null ? isAvailable : true;
 
@@ -177,7 +177,7 @@ public class Product extends BaseEntity {
 
         this.productName = productName;
         this.productInfo = productInfo;
-    this.productGenderType = productGenderType;
+        this.productGenderType = productGenderType; 
         this.brandName = brandName;
     }
 
