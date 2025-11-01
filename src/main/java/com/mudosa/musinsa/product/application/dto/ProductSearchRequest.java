@@ -77,7 +77,7 @@ public class ProductSearchRequest {
         return PageRequest.of(pageNumber, pageSize);
     }
 
-    // 카테고리 ID 목록을 defensive copy하여 저장한다.
+    // 카테고리 경로 목록을 defensive copy하여 저장한다.
     public void setCategoryPaths(List<String> categoryPaths) {
         this.categoryPaths = categoryPaths != null ? new ArrayList<>(categoryPaths) : new ArrayList<>();
     }

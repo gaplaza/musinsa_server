@@ -3,7 +3,6 @@ package com.mudosa.musinsa.product.application.dto;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -36,7 +35,6 @@ public class ProductUpdateRequest {
 
     private String brandName;
 
-    @Size(min = 1, message = "상품 이미지는 최소 1장 이상이어야 합니다.")
     @Valid
     private List<ImageUpdateRequest> images;
 
@@ -65,10 +63,10 @@ public class ProductUpdateRequest {
         private List<Long> optionValueIds;
     }
 
-    @AssertTrue(message = "상품 이미지는 썸네일 1개를 포함해야 합니다.")
+    @AssertTrue(message = "상품 이미지를 수정할 경우 썸네일 1개를 포함해야 합니다.")
     public boolean isValidThumbnailConfiguration() {
         if (images == null || images.isEmpty()) {
-            return false;
+            return true;
         }
         long thumbnailCount = images.stream()
             .filter(image -> Boolean.TRUE.equals(image.getIsThumbnail()))

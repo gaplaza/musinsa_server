@@ -92,6 +92,9 @@ public class ProductRepositoryImpl implements ProductRepositoryCustom {
             predicates.add(cb.equal(product.get("brand").get("brandId"), brandId));
         }
 
+        // 항상 판매 가능 상품만 조회한다.
+        predicates.add(cb.isTrue(product.get("isAvailable")));
+
         cq.select(product).distinct(true);
         if (!predicates.isEmpty()) {
             cq.where(cb.and(predicates.toArray(new Predicate[0])));

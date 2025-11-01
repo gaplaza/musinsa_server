@@ -312,15 +312,15 @@ public class ProductService {
 
         ProductGenderType genderType = parseGenderType(request.getProductGenderType());
 
-        String brandName = request.getBrandName() != null
-            ? request.getBrandName()
-            : product.getBrandName();
+        if (request.getBrandName() != null && !request.getBrandName().equals(product.getBrandName())) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "브랜드명은 수정할 수 없습니다.");
+        }
 
         product.updateBasicInfo(
             request.getProductName(),
             request.getProductInfo(),
             genderType,
-            brandName
+            product.getBrandName()
         );
 
         if (request.getIsAvailable() != null) {
@@ -419,7 +419,6 @@ public class ProductService {
         }
     }
 
-    // 전달받은 카테고리 ID 목록을 경로 문자열 집합으로 변환한다.
     // 상품 옵션 중 최저 가격을 계산해 정렬 및 요약 정보에 활용한다.
     private BigDecimal extractLowestPrice(Product product) {
         return product.getProductOptions().stream()
