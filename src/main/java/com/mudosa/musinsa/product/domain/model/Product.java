@@ -123,6 +123,15 @@ public class Product extends BaseEntity {
         this.productOptions.add(productOption);
     }
 
+    // 옵션을 상품과의 연관에서 제거하고 고아 객체로 처리한다.
+    public void removeProductOption(ProductOption productOption) {
+        if (productOption == null) {
+            return;
+        }
+        this.productOptions.remove(productOption);
+        productOption.detachFromProduct();
+    }
+
     // 이미지 리스트를 교체 등록하고 썸네일 조건을 확인한다.
     public void registerImages(java.util.List<ImageRegistration> imageRegistrations) {
         if (imageRegistrations == null || imageRegistrations.isEmpty()) {
