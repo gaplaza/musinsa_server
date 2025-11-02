@@ -20,7 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
-// 사용자 장바구니 CRUD를 노출하는 컨트롤러이다. 현재는 추가 기능만 제공한다.
+// 사용자 장바구니 CRUD를 노출하는 컨트롤러이다.
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/users/{userId}/cart-items")

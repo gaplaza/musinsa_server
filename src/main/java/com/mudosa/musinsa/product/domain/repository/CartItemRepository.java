@@ -25,7 +25,7 @@ public interface CartItemRepository extends JpaRepository<CartItem, Long> {
     """)
     List<CartItem> findAllWithDetailsByUserId(@Param("userId") Long userId);
 
-        @Query("""
+    @Query("""
                 select c from CartItem c
                 where c.user.id = :userId
                     and c.productOption.productOptionId = :productOptionId

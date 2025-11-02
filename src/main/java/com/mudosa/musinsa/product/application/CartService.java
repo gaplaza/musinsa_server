@@ -16,8 +16,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -53,9 +51,6 @@ public class CartService {
     /* 장바구니 조회 */
     @Transactional(readOnly = true)
     public List<CartItemDetailResponse> getCartItems(Long userId) {
-        userRepository.findById(userId)
-            .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
-
         return cartItemRepository.findAllWithDetailsByUserId(userId).stream()
             .map(this::mapToDetailResponse)
             .collect(Collectors.toList());
@@ -69,9 +64,6 @@ public class CartService {
         if (quantity <= 0) {
             throw new BusinessException(ErrorCode.VALIDATION_ERROR, "수량은 1개 이상이어야 합니다.");
         }
-
-        userRepository.findById(userId)
-            .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 
         CartItem cartItem = cartItemRepository.findById(cartItemId)
             .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND,
@@ -121,12 +113,9 @@ public class CartService {
                 userId, deletedCount);
     }
 
-    /* 장바구니 항목 삭제 */
+/* 장바구니 삭제 */
     @Transactional
     public void deleteCartItem(Long userId, Long cartItemId) {
-        userRepository.findById(userId)
-            .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
-
         CartItem cartItem = cartItemRepository.findById(cartItemId)
             .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND,
                 "장바구니 항목을 찾을 수 없습니다. cartItemId=" + cartItemId));
@@ -181,62 +170,6 @@ public class CartService {
     }
 
     private CartItemDetailResponse mapToDetailResponse(CartItem cartItem) {
-        ProductOption productOption = cartItem.getProductOption();
-        com.mudosa.musinsa.product.domain.model.Product product = productOption != null
-            ? productOption.getProduct()
-            : null;
-
-        Integer stockQuantity = null;
-        Boolean hasStock = null;
-        if (productOption != null && productOption.getInventory() != null
-            && productOption.getInventory().getStockQuantity() != null) {
-            stockQuantity = productOption.getInventory().getStockQuantity().getValue();
-            hasStock = stockQuantity > 0;
-        }
-
-        String thumbnailUrl = null;
-        if (product != null && product.getImages() != null) {
-            thumbnailUrl = product.getImages().stream()
-                .filter(image -> Boolean.TRUE.equals(image.getIsThumbnail()))
-                .map(com.mudosa.musinsa.product.domain.model.Image::getImageUrl)
-                .findFirst()
-                .orElse(null);
-        }
-
-        List<CartItemDetailResponse.OptionValueSummary> optionSummaries = productOption != null
-            ? productOption.getProductOptionValues().stream()
-                .map(mapping -> {
-                    com.mudosa.musinsa.product.domain.model.OptionValue optionValue = mapping.getOptionValue();
-                    com.mudosa.musinsa.product.domain.model.OptionName optionName = optionValue != null
-                        ? optionValue.getOptionName()
-                        : null;
-                    return CartItemDetailResponse.OptionValueSummary.builder()
-                        .optionValueId(optionValue != null ? optionValue.getOptionValueId() : null)
-                        .optionName(optionName != null ? optionName.getOptionName() : null)
-                        .optionValue(optionValue != null ? optionValue.getOptionValue() : null)
-                        .build();
-                })
-                .collect(Collectors.toList())
-            : Collections.emptyList();
-
-        BigDecimal unitAmount = cartItem.getUnitPrice() != null
-            ? cartItem.getUnitPrice().getAmount()
-            : null;
-
-        return CartItemDetailResponse.builder()
-            .cartItemId(cartItem.getCartItemId())
-            .userId(cartItem.getUser() != null ? cartItem.getUser().getId() : null)
-            .productId(product != null ? product.getProductId() : null)
-            .productOptionId(productOption != null ? productOption.getProductOptionId() : null)
-            .productName(product != null ? product.getProductName() : null)
-            .productInfo(product != null ? product.getProductInfo() : null)
-            .brandName(product != null ? product.getBrandName() : null)
-            .quantity(cartItem.getQuantity())
-            .unitPrice(unitAmount)
-            .stockQuantity(stockQuantity)
-            .hasStock(hasStock)
-            .thumbnailUrl(thumbnailUrl)
-            .optionValues(optionSummaries)
-            .build();
+        return CartItemDetailResponse.from(cartItem);
     }
 }
