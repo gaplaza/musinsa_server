@@ -1,12 +1,26 @@
 package com.mudosa.musinsa.product.application;
 
+import com.mudosa.musinsa.exception.BusinessException;
+import com.mudosa.musinsa.exception.ErrorCode;
+import com.mudosa.musinsa.product.application.dto.CartItemCreateRequest;
+import com.mudosa.musinsa.product.application.dto.CartItemDetailResponse;
+import com.mudosa.musinsa.product.application.dto.CartItemResponse;
+import com.mudosa.musinsa.product.domain.model.CartItem;
+import com.mudosa.musinsa.product.domain.model.ProductOption;
 import com.mudosa.musinsa.product.domain.repository.CartItemRepository;
+import com.mudosa.musinsa.product.domain.repository.ProductOptionRepository;
+import com.mudosa.musinsa.user.domain.model.User;
+import com.mudosa.musinsa.user.domain.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -14,6 +28,78 @@ import java.util.List;
 public class CartService {
 
     private final CartItemRepository cartItemRepository;
+    private final ProductOptionRepository productOptionRepository;
+    private final UserRepository userRepository;
+
+    /* 장바구니 저장 */
+    @Transactional
+    public CartItemResponse addCartItem(Long userId, CartItemCreateRequest request) {
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+
+        ProductOption productOption = productOptionRepository.findByIdWithProductAndInventory(request.getProductOptionId())
+            .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_OPTION_NOT_FOUND));
+
+        validateOptionAvailability(productOption);
+
+        CartItem cartItem = cartItemRepository.findByUserIdAndProductOptionId(userId, productOption.getProductOptionId())
+            .map(existing -> updateQuantity(existing, productOption, request.getQuantity()))
+            .orElseGet(() -> createNewCartItem(user, productOption, request.getQuantity()));
+
+        CartItem saved = cartItemRepository.save(cartItem);
+        return CartItemResponse.from(saved);
+    }
+
+    /* 장바구니 조회 */
+    @Transactional(readOnly = true)
+    public List<CartItemDetailResponse> getCartItems(Long userId) {
+        userRepository.findById(userId)
+            .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+
+        return cartItemRepository.findAllWithDetailsByUserId(userId).stream()
+            .map(this::mapToDetailResponse)
+            .collect(Collectors.toList());
+    }
+
+    /* 장바구니 수량 수정 */
+    @Transactional
+    public CartItemResponse updateCartItemQuantity(Long userId,
+                                                   Long cartItemId,
+                                                   int quantity) {
+        if (quantity <= 0) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "수량은 1개 이상이어야 합니다.");
+        }
+
+        userRepository.findById(userId)
+            .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+
+        CartItem cartItem = cartItemRepository.findById(cartItemId)
+            .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND,
+                "장바구니 항목을 찾을 수 없습니다. cartItemId=" + cartItemId));
+
+        if (cartItem.getUser() == null || !Objects.equals(cartItem.getUser().getId(), userId)) {
+            throw new BusinessException(ErrorCode.FORBIDDEN, "본인 장바구니 항목만 수정할 수 있습니다.");
+        }
+
+        Long productOptionId = cartItem.getProductOption() != null
+            ? cartItem.getProductOption().getProductOptionId()
+            : null;
+
+        if (productOptionId == null) {
+            throw new BusinessException(ErrorCode.PRODUCT_OPTION_NOT_FOUND,
+                "상품 옵션 정보를 찾을 수 없습니다. cartItemId=" + cartItemId);
+        }
+
+        ProductOption productOption = productOptionRepository.findByIdWithProductAndInventory(productOptionId)
+            .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_OPTION_NOT_FOUND));
+
+        validateOptionAvailability(productOption);
+        verifyRequestedQuantity(productOption, quantity);
+
+        cartItem.changeQuantity(quantity);
+        CartItem saved = cartItemRepository.save(cartItem);
+        return CartItemResponse.from(saved);
+    }
 
     /* 장바구니 삭제 */
     @Transactional
@@ -33,5 +119,124 @@ public class CartService {
 
         log.info("장바구니 삭제 완료 - userId: {}, deletedCount: {}",
                 userId, deletedCount);
+    }
+
+    /* 장바구니 항목 삭제 */
+    @Transactional
+    public void deleteCartItem(Long userId, Long cartItemId) {
+        userRepository.findById(userId)
+            .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+
+        CartItem cartItem = cartItemRepository.findById(cartItemId)
+            .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND,
+                "장바구니 항목을 찾을 수 없습니다. cartItemId=" + cartItemId));
+
+        if (cartItem.getUser() == null || !Objects.equals(cartItem.getUser().getId(), userId)) {
+            throw new BusinessException(ErrorCode.FORBIDDEN, "본인 장바구니 항목만 삭제할 수 있습니다.");
+        }
+
+        cartItemRepository.delete(cartItem);
+    }
+
+    private CartItem updateQuantity(CartItem cartItem, ProductOption productOption, int additionalQuantity) {
+        int targetQuantity = cartItem.getQuantity() + additionalQuantity;
+        verifyRequestedQuantity(productOption, targetQuantity);
+        cartItem.changeQuantity(targetQuantity);
+        return cartItem;
+    }
+
+    private CartItem createNewCartItem(User user, ProductOption productOption, int quantity) {
+        verifyRequestedQuantity(productOption, quantity);
+        return CartItem.builder()
+            .user(user)
+            .productOption(productOption)
+            .quantity(quantity)
+            .unitPrice(productOption.getProductPrice())
+            .build();
+    }
+
+    private void validateOptionAvailability(ProductOption productOption) {
+        if (productOption.getProduct() == null || Boolean.FALSE.equals(productOption.getProduct().getIsAvailable())) {
+            throw new BusinessException(ErrorCode.PRODUCT_OPTION_NOT_AVAILABLE, "상품이 판매 중이 아닙니다.");
+        }
+        productOption.validateAvailable();
+    }
+
+    private void verifyRequestedQuantity(ProductOption productOption, int quantity) {
+        if (quantity <= 0) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "수량은 1개 이상이어야 합니다.");
+        }
+
+        Integer stock = productOption.getInventory() != null && productOption.getInventory().getStockQuantity() != null
+            ? productOption.getInventory().getStockQuantity().getValue()
+            : null;
+
+        if (stock == null) {
+            throw new BusinessException(ErrorCode.PRODUCT_OPTION_NOT_AVAILABLE, "재고 정보가 유효하지 않습니다.");
+        }
+
+        if (stock < quantity) {
+            throw new BusinessException(ErrorCode.INSUFFICIENT_STOCK, "요청 수량이 재고를 초과했습니다.");
+        }
+    }
+
+    private CartItemDetailResponse mapToDetailResponse(CartItem cartItem) {
+        ProductOption productOption = cartItem.getProductOption();
+        com.mudosa.musinsa.product.domain.model.Product product = productOption != null
+            ? productOption.getProduct()
+            : null;
+
+        Integer stockQuantity = null;
+        Boolean hasStock = null;
+        if (productOption != null && productOption.getInventory() != null
+            && productOption.getInventory().getStockQuantity() != null) {
+            stockQuantity = productOption.getInventory().getStockQuantity().getValue();
+            hasStock = stockQuantity > 0;
+        }
+
+        String thumbnailUrl = null;
+        if (product != null && product.getImages() != null) {
+            thumbnailUrl = product.getImages().stream()
+                .filter(image -> Boolean.TRUE.equals(image.getIsThumbnail()))
+                .map(com.mudosa.musinsa.product.domain.model.Image::getImageUrl)
+                .findFirst()
+                .orElse(null);
+        }
+
+        List<CartItemDetailResponse.OptionValueSummary> optionSummaries = productOption != null
+            ? productOption.getProductOptionValues().stream()
+                .map(mapping -> {
+                    com.mudosa.musinsa.product.domain.model.OptionValue optionValue = mapping.getOptionValue();
+                    com.mudosa.musinsa.product.domain.model.OptionName optionName = optionValue != null
+                        ? optionValue.getOptionName()
+                        : null;
+                    return CartItemDetailResponse.OptionValueSummary.builder()
+                        .optionValueId(optionValue != null ? optionValue.getOptionValueId() : null)
+                        .optionName(optionName != null ? optionName.getOptionName() : null)
+                        .optionValue(optionValue != null ? optionValue.getOptionValue() : null)
+                        .build();
+                })
+                .collect(Collectors.toList())
+            : Collections.emptyList();
+
+        BigDecimal unitAmount = cartItem.getUnitPrice() != null
+            ? cartItem.getUnitPrice().getAmount()
+            : null;
+
+        return CartItemDetailResponse.builder()
+            .cartItemId(cartItem.getCartItemId())
+            .userId(cartItem.getUser() != null ? cartItem.getUser().getId() : null)
+            .productId(product != null ? product.getProductId() : null)
+            .productOptionId(productOption != null ? productOption.getProductOptionId() : null)
+            .productName(product != null ? product.getProductName() : null)
+            .productInfo(product != null ? product.getProductInfo() : null)
+            .brandName(product != null ? product.getBrandName() : null)
+            .quantity(cartItem.getQuantity())
+            .unitPrice(unitAmount)
+            .stockQuantity(stockQuantity)
+            .hasStock(hasStock)
+            .thumbnailUrl(thumbnailUrl)
+            .optionValues(optionSummaries)
+            .build();
     }
 }
