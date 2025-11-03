@@ -38,13 +38,10 @@ public class UserAccountService {
                 passwordEncoder.encode(request.getPassword()),
                 request.getEmail(),
                 UserRole.USER,
-                request.getAvatarUrl()
+                request.getAvatarUrl(),
+                request.getContactNumber(),
+                request.getAddress()
         );
-
-        if (user.getAvatarUrl() == null || user.getAvatarUrl().isBlank()) {
-            Long seed = user.getId();
-            user.setAvatarUrl("https://api.dicebear.com/9.x/notionists/svg?seed=" + seed);
-        }
 
         userRepository.save(user);
     }
