@@ -12,7 +12,6 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
@@ -63,7 +62,8 @@ public class SecurityConfig {
                             "/api/orders/pending",    // 주문서 조회 (비로그인 가능)
                             "/swagger-ui/**",         // Swagger UI
                             "/v3/api-docs/**",        // API 문서
-                            "/error"                  // 에러 페이지
+                            "/error",                 // 에러 페이지
+                            "/api/notification/**"
                     )
                     .permitAll()
                     // 그 외 모든 요청은 인증 필요
