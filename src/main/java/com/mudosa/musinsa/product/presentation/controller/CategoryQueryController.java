@@ -72,6 +72,7 @@ public class CategoryQueryController {
         Long categoryId;
         String categoryName;
         String categoryPath;
+        String imageUrl;
         List<CategoryNode> children;
         
         static CategoryNode from(Category category, List<Category> children) {
@@ -80,6 +81,7 @@ public class CategoryQueryController {
                     child.getCategoryId(),
                     child.getCategoryName(),
                     child.buildPath(),
+                    child.getImageUrl(),
                     List.of() // 손주는 없으므로 빈 리스트
                 ))
                 .collect(Collectors.toList());
@@ -88,6 +90,7 @@ public class CategoryQueryController {
                 category.getCategoryId(),
                 category.getCategoryName(),
                 category.buildPath(),
+                category.getImageUrl(),
                 childNodes
             );
         }
