@@ -25,7 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
+
 
 @Slf4j
 @Service
@@ -388,14 +388,14 @@ public class OrderService {
 
                     // SIZE 옵션 추출
                     String sizeValue = optionValues.stream()
-                            .filter(pov -> "SIZE".equals(pov.getOptionValue().getOptionName().getOptionName()))
+                            .filter(pov -> "SIZE".equals(pov.getOptionValue().getOptionName()))
                             .map(pov -> pov.getOptionValue().getOptionValue())
                             .findFirst()
                             .orElse("");
 
                     // COLOR 옵션 추출
                     String colorValue = optionValues.stream()
-                            .filter(pov -> "COLOR".equals(pov.getOptionValue().getOptionName().getOptionName()))
+                            .filter(pov -> "COLOR".equals(pov.getOptionValue().getOptionName()))
                             .map(pov -> pov.getOptionValue().getOptionValue())
                             .findFirst()
                             .orElse("");

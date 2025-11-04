@@ -2,7 +2,7 @@ package com.mudosa.musinsa.product.application.dto;
 
 import com.mudosa.musinsa.product.domain.model.CartItem;
 import com.mudosa.musinsa.product.domain.model.Image;
-import com.mudosa.musinsa.product.domain.model.OptionName;
+
 import com.mudosa.musinsa.product.domain.model.OptionValue;
 import com.mudosa.musinsa.product.domain.model.Product;
 import com.mudosa.musinsa.product.domain.model.ProductOption;
@@ -82,12 +82,9 @@ public class CartItemDetailResponse {
             .stream()
             .map(mapping -> {
                 OptionValue optionValue = mapping.getOptionValue();
-                OptionName optionName = optionValue != null
-                    ? optionValue.getOptionName()
-                    : null;
                 return OptionValueSummary.builder()
                     .optionValueId(optionValue != null ? optionValue.getOptionValueId() : null)
-                    .optionName(optionName != null ? optionName.getOptionName() : null)
+                    .optionName(optionValue != null ? optionValue.getOptionName() : null)
                     .optionValue(optionValue != null ? optionValue.getOptionValue() : null)
                     .build();
             })
