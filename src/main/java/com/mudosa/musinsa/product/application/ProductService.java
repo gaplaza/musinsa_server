@@ -9,7 +9,7 @@ import com.mudosa.musinsa.product.application.dto.ProductSearchResponse;
 import com.mudosa.musinsa.product.application.dto.ProductUpdateRequest;
 import com.mudosa.musinsa.product.domain.model.Category;
 import com.mudosa.musinsa.product.domain.model.Inventory;
-import com.mudosa.musinsa.product.domain.model.OptionName;
+
 import com.mudosa.musinsa.product.domain.model.OptionValue;
 import com.mudosa.musinsa.product.domain.model.Product;
 import com.mudosa.musinsa.product.domain.model.ProductGenderType;
@@ -236,11 +236,10 @@ public class ProductService {
         List<ProductDetailResponse.OptionDetail.OptionValueDetail> optionValueDetails = option.getProductOptionValues().stream()
             .map(mapping -> {
                 OptionValue optionValue = mapping.getOptionValue();
-                OptionName optionName = optionValue != null ? optionValue.getOptionName() : null;
                 return ProductDetailResponse.OptionDetail.OptionValueDetail.builder()
                     .optionValueId(optionValue != null ? optionValue.getOptionValueId() : null)
-                    .optionNameId(optionName != null ? optionName.getOptionNameId() : null)
-                    .optionName(optionName != null ? optionName.getOptionName() : null)
+                    .optionNameId(null) // OptionName 엔티티가 별도로 존재하지 않으므로 null
+                    .optionName(optionValue != null ? optionValue.getOptionName() : null)
                     .optionValue(optionValue != null ? optionValue.getOptionValue() : null)
                     .build();
             })
