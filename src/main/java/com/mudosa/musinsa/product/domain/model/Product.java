@@ -52,6 +52,14 @@ public class Product extends BaseEntity {
     @Column(name = "product_gender_type", nullable = false)
     private ProductGenderType productGenderType;
 
+    // 역정규화 브랜드이름 (조회)
+    @Column(name = "brand_name", nullable = false, length = 100)
+    private String brandName;
+
+    // 역정규화: "상의/티셔츠"
+    @Column(name = "category_path", nullable = false, length = 255)
+    private String categoryPath;
+
     // 필수 값 검증 후 상품과 연관 컬렉션을 초기화하는 빌더 생성자이다.
     @Builder
     public Product(Brand brand, String productName, String productInfo,
@@ -77,11 +85,13 @@ public class Product extends BaseEntity {
         if (categoryPath == null || categoryPath.trim().isEmpty()) {
             throw new IllegalArgumentException("카테고리 경로는 필수입니다.");
         }
-        
+
         this.brand = brand;
         this.productName = productName;
         this.productInfo = productInfo;
         this.productGenderType = productGenderType;
+        this.brandName = brandName;
+        this.categoryPath = categoryPath;
         this.isAvailable = isAvailable != null ? isAvailable : true;
 
         if (images != null) {
@@ -132,12 +142,12 @@ public class Product extends BaseEntity {
         }
 
         java.util.List<Image> newImages = imageRegistrations.stream()
-            .map(spec -> Image.builder()
-                .product(this)
-                .imageUrl(spec.imageUrl())
-                .isThumbnail(spec.isThumbnail())
-                .build())
-            .toList();
+                .map(spec -> Image.builder()
+                        .product(this)
+                        .imageUrl(spec.imageUrl())
+                        .isThumbnail(spec.isThumbnail())
+                        .build())
+                .toList();
 
         validateThumbnailConstraint(newImages);
 
@@ -201,8 +211,8 @@ public class Product extends BaseEntity {
     // 이미지 목록에서 썸네일 개수를 검증한다.
     private void validateThumbnailConstraint(java.util.List<Image> images) {
         long thumbnailCount = images.stream()
-            .filter(image -> Boolean.TRUE.equals(image.getIsThumbnail()))
-            .count();
+                .filter(image -> Boolean.TRUE.equals(image.getIsThumbnail()))
+                .count();
         if (thumbnailCount == 0) {
             throw new IllegalArgumentException("상품 썸네일은 최소 1개 이상이어야 합니다.");
         }
@@ -218,8 +228,8 @@ public class Product extends BaseEntity {
         }
 
         boolean duplicated = this.productOptions.stream()
-            .map(ProductOption::normalizedOptionValueIds)
-            .anyMatch(existing -> existing.equals(candidateIds));
+                .map(ProductOption::normalizedOptionValueIds)
+                .anyMatch(existing -> existing.equals(candidateIds));
 
         if (duplicated) {
             throw new BusinessException(ErrorCode.VALIDATION_ERROR, "동일한 옵션 조합이 이미 등록되어 있습니다.");

@@ -34,13 +34,5 @@ public interface OrderRepository extends JpaRepository<Orders, Long> {
     """)
     Optional<Orders> findByOrderNoWithUserAndProducts(@Param("orderNo") String orderNo);
 
-    @Query("""
-        SELECT DISTINCT po
-        FROM ProductOption po
-        LEFT JOIN FETCH po.productOptionValues pov
-        LEFT JOIN FETCH pov.optionValue ov
-        LEFT JOIN FETCH ov.optionName on
-        WHERE po.productOptionId IN :productOptionIds
-    """)
-    List<ProductOption> findProductOptionsWithValues(@Param("productOptionIds") List<Long> productOptionIds);
+    Optional<Orders> findByOrderNo(String orderNo);
 }

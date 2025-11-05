@@ -363,49 +363,45 @@ public class OrderService {
     }
 
     @Transactional(readOnly = true)
+    //주문 상품이 5개라면 총 29번 Rount Trip하는 코드
     public PendingOrderResponse fetchPendingOrder(String orderNo) {
         log.info("[Order] 주문서 조회 시작 - orderNo: {}", orderNo);
 
-        Orders orders = orderRepository.findByOrderNoWithUserAndProducts(orderNo)
+        //order 조회 쿼리 1회
+        Orders orders = orderRepository.findByOrderNo(orderNo)
                 .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND));
 
         /* 주문 상태 확인 */
         orders.validatePending();
 
+        //user 조회 쿼리 1회
         User orderUser = orders.getUser();
         log.info("[Order] 사용자 정보 조회 완료 - userId: {}, userName: {}",
                 orderUser.getId(), orderUser.getUserName());
 
-        List<Long> productOptionIds = orders.getOrderProducts()
-                .stream()
-                .map(op -> op.getProductOption().getProductOptionId())
-                .toList();
-
-        orderRepository.findProductOptionsWithValues(productOptionIds);
-
-        log.info("[Order] ProductOption 옵션 값 조회 완료 - productOptionIds: {}", productOptionIds);
-
+        //orderProducts 조회 쿼리 1회
         List<PendingOrderItem> orderProducts = orders.getOrderProducts()
                 .stream()
                 .map(op -> {
+                    //orderProducts의 개수만큼 발생 -> N + 1 문제
                     ProductOption productOption = op.getProductOption();
+                    //productOption 개수만큼 발생 -> N + 1 문제
                     List<ProductOptionValue> optionValues = productOption.getProductOptionValues();
 
-                    // SIZE 옵션 추출
                     String sizeValue = optionValues.stream()
                             .filter(pov -> "SIZE".equals(pov.getOptionValue().getOptionName()))
                             .map(pov -> pov.getOptionValue().getOptionValue())
                             .findFirst()
                             .orElse("");
 
-                    // COLOR 옵션 추출
                     String colorValue = optionValues.stream()
                             .filter(pov -> "COLOR".equals(pov.getOptionValue().getOptionName()))
                             .map(pov -> pov.getOptionValue().getOptionValue())
                             .findFirst()
                             .orElse("");
 
-                    //imageUrl
+                    //productOption.getProduct() -> ProductOption마다 발생
+                    //product.getImages() -> product마다 발생
                     String imageUrl = op.getProductOption().getProduct().getImages().stream()
                             .filter(image -> image.getIsThumbnail()).map(i-> i.getImageUrl()).findFirst().orElse("");
 
@@ -414,7 +410,7 @@ public class OrderService {
                             .productOptionName(productOption.getProduct().getProductName())
                             .amount(op.getProductPrice())
                             .quantity(op.getProductQuantity())
-                            .brandName(productOption.getProduct().getBrand().getNameKo())
+                            .brandName(productOption.getProduct().getBrandName())
                             .size(sizeValue)
                             .imageUrl(imageUrl)
                             .color(colorValue)
@@ -424,11 +420,9 @@ public class OrderService {
 
         log.info("[Order] 주문 상품 변환 완료 - 상품 수: {}", orderProducts.size());
 
-        /* [4단계] 쿠폰 조회 */
         List<OrderMemberCoupon> coupons = memberCouponService.findMemberCoupons(orderUser.getId());
         log.info("[Order] 쿠폰 조회 완료 - 쿠폰 수: {}", coupons.size());
 
-        /* [5단계] 응답 생성 */
         PendingOrderResponse response = PendingOrderResponse.builder()
                 .orderNo(orderNo)
                 .userContactNumber(orderUser.getContactNumber())
