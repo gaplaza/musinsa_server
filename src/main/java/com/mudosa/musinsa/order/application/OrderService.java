@@ -13,9 +13,13 @@ import com.mudosa.musinsa.payment.application.dto.OrderValidationResult;
 import com.mudosa.musinsa.payment.application.dto.PaymentDetailDto;
 import com.mudosa.musinsa.payment.application.service.PaymentFetchService;
 import com.mudosa.musinsa.product.application.CartService;
+import com.mudosa.musinsa.product.domain.model.Image;
+import com.mudosa.musinsa.product.domain.model.Product;
 import com.mudosa.musinsa.product.domain.model.ProductOption;
 import com.mudosa.musinsa.product.domain.model.ProductOptionValue;
+import com.mudosa.musinsa.product.domain.repository.ImageRepository;
 import com.mudosa.musinsa.product.domain.repository.ProductOptionRepository;
+import com.mudosa.musinsa.product.domain.repository.ProductOptionValueRepository;
 import com.mudosa.musinsa.user.domain.model.User;
 import com.mudosa.musinsa.user.domain.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -26,7 +30,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -40,6 +47,8 @@ public class OrderService {
     private final StockValidator stockValidator;
     private final UserRepository userRepository;
     private final PaymentFetchService paymentService;
+    private final ProductOptionValueRepository productOptionValueRepository;
+    private final ImageRepository imageRepository;
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void completeOrder(Long orderId) {
@@ -367,26 +376,52 @@ public class OrderService {
     public PendingOrderResponse fetchPendingOrder(String orderNo) {
         log.info("[Order] 주문서 조회 시작 - orderNo: {}", orderNo);
 
-        //order 조회 쿼리 1회
-        Orders orders = orderRepository.findByOrderNo(orderNo)
+        //orderProduct, ProductOption, Product까지 조회로 변경
+        Orders orders = orderRepository.findOrderWithDetails(orderNo)
                 .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND));
 
         /* 주문 상태 확인 */
         orders.validatePending();
 
-        //user 조회 쿼리 1회
+        List<Long> productOptionIds = orders.getOrderProducts().stream()
+                .map(op -> op.getProductOption().getProductOptionId())
+                .toList();
+
+        List<Long> productIds = orders.getOrderProducts().stream()
+                .map(op -> op.getProductOption().getProduct().getProductId())
+                .distinct()
+                .toList();
+
+        List<ProductOptionValue> allOptionValues =
+                productOptionValueRepository.findAllByProductOptionIdsWithOptionValue(productOptionIds);
+
+        Map<Long, List<ProductOptionValue>> optionValueMap = allOptionValues.stream()
+                .collect(Collectors.groupingBy(
+                        pov -> pov.getProductOption().getProductOptionId()
+                ));
+
+        List<Image> thumbnailImages =
+                imageRepository.findThumbnailsByProductIds(productIds);
+
+        Map<Long, String> imageUrlMap = thumbnailImages.stream()
+                .collect(Collectors.toMap(
+                        img -> img.getProduct().getProductId(),
+                        Image::getImageUrl,
+                        (existing, replacement) -> existing // 중복 시 첫 번째 값 유지
+                ));
+
         User orderUser = orders.getUser();
         log.info("[Order] 사용자 정보 조회 완료 - userId: {}, userName: {}",
                 orderUser.getId(), orderUser.getUserName());
 
-        //orderProducts 조회 쿼리 1회
-        List<PendingOrderItem> orderProducts = orders.getOrderProducts()
-                .stream()
+        List<PendingOrderItem> orderProducts = orders.getOrderProducts().stream()
                 .map(op -> {
-                    //orderProducts의 개수만큼 발생 -> N + 1 문제
                     ProductOption productOption = op.getProductOption();
-                    //productOption 개수만큼 발생 -> N + 1 문제
-                    List<ProductOptionValue> optionValues = productOption.getProductOptionValues();
+                    Product product = productOption.getProduct();
+
+                    // Map에서 옵션 값 조회
+                    List<ProductOptionValue> optionValues =
+                            optionValueMap.getOrDefault(productOption.getProductOptionId(), Collections.emptyList());
 
                     String sizeValue = optionValues.stream()
                             .filter(pov -> "SIZE".equals(pov.getOptionValue().getOptionName()))
@@ -400,20 +435,18 @@ public class OrderService {
                             .findFirst()
                             .orElse("");
 
-                    //productOption.getProduct() -> ProductOption마다 발생
-                    //product.getImages() -> product마다 발생
-                    String imageUrl = op.getProductOption().getProduct().getImages().stream()
-                            .filter(image -> image.getIsThumbnail()).map(i-> i.getImageUrl()).findFirst().orElse("");
+                    // Map에서 이미지 URL 조회
+                    String imageUrl = imageUrlMap.getOrDefault(product.getProductId(), "");
 
                     return PendingOrderItem.builder()
                             .productOptionId(op.getProductOptionId())
-                            .productOptionName(productOption.getProduct().getProductName())
+                            .productOptionName(product.getProductName())
                             .amount(op.getProductPrice())
                             .quantity(op.getProductQuantity())
-                            .brandName(productOption.getProduct().getBrandName())
+                            .brandName(product.getBrandName())
                             .size(sizeValue)
-                            .imageUrl(imageUrl)
                             .color(colorValue)
+                            .imageUrl(imageUrl)
                             .build();
                 })
                 .toList();
