@@ -21,10 +21,17 @@ import org.springframework.transaction.PlatformTransactionManager;
 import java.time.LocalDate;
 
 /**
- * 월간 정산 집계 배치
- * - 실행 주기: 매월 1일
- * - 집계 범위: SettlementDaily → SettlementMonthly
- * - 처리 방식: 브랜드별 청크 단위 처리
+ * 월간 정산 집계 배치 Job
+ *
+ * 일일 정산 데이터를 월간 단위로 집계
+ * 매월 1일 자동 실행
+ *
+ * 처리 흐름:
+ * 모든 브랜드 ID 조회 (BrandIdReader)
+ * -> 브랜드별로 지난달 1일~말일의 일일 정산 데이터 집계
+ * -> SettlementDaily → SettlementMonthly 변환 및 저장
+ *
+ * 집계 기간: 지난달 (1일 ~ 말일)
  */
 @Slf4j
 @Configuration
