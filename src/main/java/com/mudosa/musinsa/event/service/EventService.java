@@ -14,7 +14,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -99,6 +98,7 @@ public class EventService {
 
     }
 
+    //TODO: 이벤트로 단일 책임 원칙 설정
     // 이벤트 상태 계산 (SOON, OPEN, CLOSED)
     private Event.EventStatus calculateEventStatus(Event event, LocalDateTime currentTime) {
         if (currentTime.isBefore(event.getStartedAt())) {

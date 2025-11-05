@@ -8,18 +8,10 @@ import com.mudosa.musinsa.settlement.domain.model.SettlementDaily;
 import com.mudosa.musinsa.settlement.domain.model.SettlementMonthly;
 import com.mudosa.musinsa.settlement.domain.model.SettlementWeekly;
 import com.mudosa.musinsa.settlement.domain.model.SettlementYearly;
-import com.mudosa.musinsa.settlement.domain.repository.SettlementDailyMapper;
-import com.mudosa.musinsa.settlement.domain.repository.SettlementDailyRepository;
-import com.mudosa.musinsa.settlement.domain.repository.SettlementMonthlyMapper;
-import com.mudosa.musinsa.settlement.domain.repository.SettlementMonthlyRepository;
-import com.mudosa.musinsa.settlement.domain.repository.SettlementPerTransactionMapper;
-import com.mudosa.musinsa.settlement.domain.repository.SettlementPerTransactionRepository;
-import com.mudosa.musinsa.settlement.domain.repository.SettlementWeeklyRepository;
-import com.mudosa.musinsa.settlement.domain.repository.SettlementYearlyRepository;
+import com.mudosa.musinsa.settlement.domain.repository.*;
 import com.mudosa.musinsa.settlement.domain.service.SettlementNumberGenerator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -99,6 +91,7 @@ public class SettlementAggregationService {
                 "Asia/Seoul"
             );
 
+            //TODO: 과연 분리하는게 맞을까
             setDailyAggregationData(daily, dto);
 
             daily.startProcessing();
@@ -112,6 +105,8 @@ public class SettlementAggregationService {
         }
 
         log.info("일일 정산 {}건 생성 완료", dailySettlements.size());
+
+        //TODO: 리턴값 필요없음
         return dailySettlements;
     }
 
