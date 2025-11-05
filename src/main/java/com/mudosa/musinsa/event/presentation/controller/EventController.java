@@ -6,11 +6,15 @@ import com.mudosa.musinsa.event.service.EventService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.ViewResolver;
 
 import java.util.List;
 
-
+//MVC
+// view -> 정적 파일을 서빙하는 역할
+//@Controller -> ViewResolver
 @RestController
 @RequestMapping("/api/events")
 @CrossOrigin(origins = "http://localhost:5173")
@@ -41,7 +45,7 @@ public class EventController {
 //            // 잘못된 타입을 파라미터로 넘겨줄 경우
 //            return ResponseEntity.badRequest().build();  // 400 잘못된 요청
 //        }
-
+        String text = new String("test setes");
         List<EventListResDto> eventList = eventService.getEventListByType(type); // EventService에 만들어야됨
         return ResponseEntity.ok(eventList);
     }

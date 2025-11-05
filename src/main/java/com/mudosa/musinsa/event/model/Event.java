@@ -27,7 +27,7 @@ public class Event extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "event_id")
-    private Long id;
+    private Long id;  
 
     // DDL: title VARCHAR(255) NOT NULL
     @Column(name = "title", nullable = false, length = 255)

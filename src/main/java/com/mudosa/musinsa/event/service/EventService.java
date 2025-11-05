@@ -81,7 +81,7 @@ public class EventService {
 
                     if (po != null) {
                         productOptionId = po.getProductOptionId();
-                        optionLabel = null; // 추후에 로직 추가 필요
+                        optionLabel = null; // 추후에 로직 추가 필요,
 
                         if(po.getProduct() != null) {
                             productName = po.getProduct().getProductName();
