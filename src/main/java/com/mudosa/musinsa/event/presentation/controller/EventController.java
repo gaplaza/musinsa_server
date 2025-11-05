@@ -1,8 +1,12 @@
 package com.mudosa.musinsa.event.presentation.controller;
 
+//import com.mudosa.musinsa.event.presentation.dto.req.EventCouponIssueRequest;
+//import com.mudosa.musinsa.event.presentation.dto.res.EventCouponIssueResponse;
+
 import com.mudosa.musinsa.event.presentation.dto.res.EventListResDto;
 import com.mudosa.musinsa.event.model.Event;
 import com.mudosa.musinsa.event.service.EventService;
+import com.mudosa.musinsa.event.service.EventEntryService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -24,6 +28,7 @@ import java.util.List;
 public class EventController {
 
     private final EventService eventService;
+    private final EventEntryService eventEntryService;
 
     /*
     이벤트 목록 조회 api
@@ -45,8 +50,16 @@ public class EventController {
 //            // 잘못된 타입을 파라미터로 넘겨줄 경우
 //            return ResponseEntity.badRequest().build();  // 400 잘못된 요청
 //        }
-        String text = new String("test setes");
+        //String text = new String("test setes");
         List<EventListResDto> eventList = eventService.getEventListByType(type); // EventService에 만들어야됨
         return ResponseEntity.ok(eventList);
     }
+
+    /* 쿠폰 발급 트리거
+     * 슬롯/상태 검증 → (eventId,couponId) 재고 차감 → 발급이력 저장 → member_coupon 생성
+
+    */
+
+    //@PostMapping
+
 }

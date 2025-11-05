@@ -1,6 +1,8 @@
 package com.mudosa.musinsa.event.model;
 
 import com.mudosa.musinsa.common.domain.model.BaseEntity;
+import com.mudosa.musinsa.coupon.domain.model.Coupon;
+
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
