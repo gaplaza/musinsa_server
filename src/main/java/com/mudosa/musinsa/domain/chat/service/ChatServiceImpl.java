@@ -352,8 +352,10 @@ public class ChatServiceImpl implements ChatService {
     Message parent = messageRepository.findById(parentId)
         .orElseThrow(() -> new BusinessException(ErrorCode.MESSAGE_PARENT_NOT_FOUND));
 
+    //TODO: 캡슐화를 공부해보자!
     // 부모 메시지가 다른 방의 메시지면 막기
-    if (!parent.getChatRoom().getChatId().equals(chatId)) {
+    if (!parent.isSameRoom(1L)) {
+//    if (!parent.getChatRoom().getChatId().equals(chatId)) {
       throw new BusinessException(ErrorCode.MESSAGE_PARENT_NOT_FOUND);
     }
 
@@ -381,6 +383,7 @@ public class ChatServiceImpl implements ChatService {
 
       //저장
       try {
+         //TODO: 파일 처리 분리 필요!
         // === 실제 경로 생성 ===
         String uploadDir = new ClassPathResource("static/").getFile().getAbsolutePath()
             + "/chat/" + chatId + "/message/" + messageId;
@@ -420,6 +423,7 @@ public class ChatServiceImpl implements ChatService {
                                     Long chatId,
                                     MessageResponse dto,
                                     String content) {
+      //TODO: 만약에 스프링 큐가 아닌 다른 큐를 쓴다면 관련 코드가 다 변경되어아햘지 않을까? OOP를 적용해보자!
     eventPublisher.publishEvent(new MessageCreatedEvent(dto));
     eventPublisher.publishEvent(new NotificationRequiredEvent(userId, chatId, content));
   }
