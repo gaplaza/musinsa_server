@@ -103,7 +103,7 @@ logging:
   
   # 파일 로깅 설정
   file:
-    name: /var/log/musinsa/application.log
+    name: /var/log/mudosa/application.log
     max-size: 100MB
     max-history: 30
     total-size-cap: 3GB
