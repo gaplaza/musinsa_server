@@ -41,6 +41,7 @@ public class PaymentSettlementService {
     private final SettlementApplicationService settlementApplicationService;
     private final PgFeeCalculator pgFeeCalculator;
 
+    //TODO: Async학습 !! 비동기를 이렇게 쓰면 문제가 생긴다
     @Async
     @EventListener
     public void onPaymentApproved(PaymentApprovedEvent event) {
@@ -94,6 +95,7 @@ public class PaymentSettlementService {
 
         String timezone = "Asia/Seoul";
 
+        //TODO: 메서드 분리가 필요할까?
         settlementApplicationService.createSettlementTransaction(
                 brandId,
                 payment.getId(),
