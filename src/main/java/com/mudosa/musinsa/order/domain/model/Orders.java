@@ -58,15 +58,11 @@ public class Orders extends BaseEntity {
     @Column(name = "settled_at")
     private LocalDateTime settledAt;
 
+    /* 주문 생성 */
     public static Orders create(
-            BigDecimal totalPrice,
             User user,
             Long couponId
             ) {
-
-        if (totalPrice == null || totalPrice.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new BusinessException(ErrorCode.ORDER_INVALID_AMOUNT);
-        }
 
         if (user == null) {
             throw new BusinessException(ErrorCode.USER_NOT_FOUND);
@@ -74,7 +70,6 @@ public class Orders extends BaseEntity {
 
         Orders order = new Orders();
         order.user = user;
-        order.totalPrice = totalPrice;
         order.status = OrderStatus.PENDING;
         order.couponId = couponId;
 
@@ -83,13 +78,26 @@ public class Orders extends BaseEntity {
         return order;
     }
 
+    /* 상품 가격 계산 */
+    public void calculateTotalPrice() {
+        if (this.orderProducts.isEmpty()) {
+            throw new BusinessException(ErrorCode.ORDER_ITEM_NOT_FOUND);
+        }
+
+        this.totalPrice = this.orderProducts.stream()
+                .map(OrderProduct::calculatePrice)  // 각 상품의 금액 계산
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    /* 주문 번호 생성 */
     private static String createOrderNumber(){
         // 주문번호 형식: ORD + timestamp(13자리) + random(3자리)
         long timestamp = System.currentTimeMillis();
         int random = (int)(Math.random() * 1000);
         return String.format("ORD%d%03d", timestamp, random);
     }
-    
+
+    /* 주문 상태 확인 */
     public void validatePending() {
         if (!this.status.isPending()) {
             throw new BusinessException(
@@ -111,11 +119,13 @@ public class Orders extends BaseEntity {
         }
     }
 
+    /* 주문 완료 처리 */
     public void complete() {
         this.status = this.status.transitionTo(OrderStatus.COMPLETED);
         this.isSettleable = true;
     }
 
+    /* 주문 롤백 처리 */
     public void rollback() {
         if (this.status.isCompleted()) {
             this.status = OrderStatus.PENDING;

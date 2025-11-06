@@ -271,13 +271,8 @@ public class OrderService {
 
         List<ProductOption> productOptions = productOptionRepository.findAllByIdWithInventory(productOptionIds);
 
-        /* 3. 총 금액 계산 */
-        BigDecimal totalPrice = calculateTotalPrice(request.getItems(), productOptions);
-        log.info("총 금액 계산 완료 - totalPrice: {}", totalPrice);
-
         /* 4. 주문 생성 */
         Orders order = Orders.create(
-                totalPrice,
                 user,  // User 엔티티 전달
                 request.getCouponId()
         );
@@ -291,7 +286,10 @@ public class OrderService {
 
         order.addOrderProducts(orderProducts);
 
-        /* 6. 재고 확인*/
+        /* 6. 총 금액 계산 */
+        order.calculateTotalPrice();
+
+        /* 7. 재고 확인*/
         StockValidationResult stockValidation = order.validateStock();
 
         if (stockValidation.hasInsufficientStock()) {
@@ -299,35 +297,35 @@ public class OrderService {
             return OrderCreateResponse.insufficientStock(stockValidation.getInsufficientItems());
         }
 
-        /* 7. 주문 저장 */
+        /* 8. 주문 저장 */
         Orders savedOrder = orderRepository.save(order);
         log.info("주문 생성 완료 - orderId: {}, orderNo: {}, totalPrice: {}",
                 savedOrder.getId(), savedOrder.getOrderNo(), savedOrder.getTotalPrice());
 
         return OrderCreateResponse.success(savedOrder.getId(), savedOrder.getOrderNo());
     }
-
-    //TODO: 총 주문 금액 계산 로직인데 해당 코드가 여기있으면 될까? 다른롯에서 만약 쓴다면?
-    private BigDecimal calculateTotalPrice(
-            List<OrderCreateItem> items,
-            List<ProductOption> productOptions) {
-
-        BigDecimal totalPrice = BigDecimal.ZERO;
-
-        for (OrderCreateItem item : items) {
-            //ProductOption에서 관리
-            ProductOption productOption = productOptions.stream()
-                    .filter(po -> po.getProductOptionId().equals(item.getProductOptionId()))
-                    .findFirst()
-                    .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_OPTION_NOT_FOUND));
-
-            BigDecimal itemPrice = productOption.getProductPrice().getAmount()
-                    .multiply(BigDecimal.valueOf(item.getQuantity()));
-            totalPrice = totalPrice.add(itemPrice);
-        }
-
-        return totalPrice;
-    }
+//
+//    //TODO: 총 주문 금액 계산 로직인데 해당 코드가 여기있으면 될까? 다른롯에서 만약 쓴다면?
+//    private BigDecimal calculateTotalPrice(
+//            List<OrderCreateItem> items,
+//            List<ProductOption> productOptions) {
+//
+//        BigDecimal totalPrice = BigDecimal.ZERO;
+//
+//        for (OrderCreateItem item : items) {
+//            //ProductOption에서 관리
+//            ProductOption productOption = productOptions.stream()
+//                    .filter(po -> po.getProductOptionId().equals(item.getProductOptionId()))
+//                    .findFirst()
+//                    .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_OPTION_NOT_FOUND));
+//
+//            BigDecimal itemPrice = productOption.getProductPrice().getAmount()
+//                    .multiply(BigDecimal.valueOf(item.getQuantity()));
+//            totalPrice = totalPrice.add(itemPrice);
+//        }
+//
+//        return totalPrice;
+//    }
 
     private List<OrderProduct> createOrderProducts(
             List<OrderCreateItem> items,
@@ -359,11 +357,10 @@ public class OrderService {
     }
 
     @Transactional(readOnly = true)
-    //주문 상품이 5개라면 총 29번 Rount Trip하는 코드
     public PendingOrderResponse fetchPendingOrder(String orderNo) {
         log.info("[Order] 주문서 조회 시작 - orderNo: {}", orderNo);
 
-        //orderProduct, ProductOption, Product까지 조회로 변경
+        /* 주문 조회(user, orderProducts, productOption, product 까지)*/
         Orders orders = orderRepository.findOrderWithDetails(orderNo)
                 .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND));
 
@@ -394,7 +391,7 @@ public class OrderService {
                 .collect(Collectors.toMap(
                         img -> img.getProduct().getProductId(),
                         Image::getImageUrl,
-                        (existing, replacement) -> existing // 중복 시 첫 번째 값 유지
+                        (existing, replacement) -> existing
                 ));
 
         User orderUser = orders.getUser();
@@ -469,11 +466,6 @@ public class OrderService {
 
         User orderUser = orders.getUser();
         log.info("[Order] 주문 상태: {}, 사용자: {}", orders.getStatus(), orderUser.getUserName());
-
-        List<Long> productOptionIds = orders.getOrderProducts()
-                .stream()
-                .map(op -> op.getProductOption().getProductOptionId())
-                .toList();
 
 
         // 주문 상품 변환

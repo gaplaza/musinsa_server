@@ -111,4 +111,8 @@ public class OrderProduct extends BaseEntity {
     public int getAvailableStock() {
         return this.productOption.getInventory().getStockQuantity().getValue();
     }
+
+    public BigDecimal calculatePrice() {
+        return this.productPrice.multiply(BigDecimal.valueOf(this.productQuantity));
+    }
 }
