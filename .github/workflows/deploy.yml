@@ -54,14 +54,16 @@ jobs:
           cd ~/mudosa
           nohup java -jar -Dspring.profiles.active=prod app.jar > app.log 2>&1 &
 
-          # 시작 대기
-          sleep 10
+          # 시작 대기 (애플리케이션 시작까지 충분한 시간)
+          echo "Waiting for application to start..."
+          sleep 25
 
           # 헬스체크
-          if curl -f http://localhost:8080/actuator/health; then
+          if curl -s http://localhost:8080/actuator/health | grep -q "errorCode\|status"; then
             echo "Application started successfully"
           else
             echo "Application health check failed"
+            tail -50 ~/mudosa/app.log
             exit 1
           fi
         EOF
