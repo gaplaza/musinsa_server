@@ -45,29 +45,24 @@ jobs:
         # JAR 파일 업로드
         scp -i private_key.pem build/libs/server-0.0.1-SNAPSHOT.jar $EC2_USER@$EC2_HOST:~/mudosa/app.jar
 
-        # 애플리케이션 재시작
+        # 애플리케이션 재시작 (systemd 사용)
         ssh -i private_key.pem $EC2_USER@$EC2_HOST << 'EOF'
-          # 기존 프로세스 종료
-          pkill -f app.jar || true
-
-          # 새 애플리케이션 시작 (.env 파일 로드)
-          cd ~/mudosa
-          set -a
-          source .env
-          set +a
-          nohup java -jar -Dspring.profiles.active=prod app.jar > app.log 2>&1 &
+          # systemd로 재시작
+          sudo systemctl restart mudosa.service
 
           # 시작 대기 (애플리케이션 시작까지 충분한 시간)
           echo "Waiting for application to start..."
           sleep 25
 
-          # 헬스체크 (SERVER_PORT 환경변수 사용, 기본값 8080)
-          PORT=${SERVER_PORT:-8080}
-          if curl -s http://localhost:$PORT/actuator/health | grep -q "errorCode\|status"; then
-            echo "Application started successfully on port $PORT"
+          # 서비스 상태 확인
+          sudo systemctl is-active mudosa.service
+
+          # 헬스체크 (8080 포트)
+          if curl -s http://localhost:8080/actuator/health | grep -q "status"; then
+            echo "Application started successfully on port 8080"
           else
-            echo "Application health check failed on port $PORT"
-            tail -50 ~/mudosa/app.log
+            echo "Application health check failed on port 8080"
+            sudo journalctl -u mudosa.service -n 50
             exit 1
           fi
         EOF
