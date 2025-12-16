@@ -1,0 +1,101 @@
+spring:
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.batch.BatchAutoConfiguration
+      - org.springframework.boot.autoconfigure.kafka.KafkaAutoConfiguration
+  batch:
+    jdbc:
+      initialize-schema: never
+    job:
+      enabled: false
+
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://${DB_HOST:172.16.24.31}:${DB_PORT:3307}/sinsang_db_50k?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul&characterEncoding=UTF-8&rewriteBatchedStatements=true
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:sinsang1234}
+    hikari:
+      # ============================================================
+      # HikariCP Pool Size 계산 (공식 기반)
+      # ============================================================
+      # 공식: (CPU 코어 × 2) + Spindle Count
+      # DB 서버: 8코어, SSD(Spindle=1)
+      # 계산: (8 × 2) + 1 = 17개
+      # ============================================================
+      maximum-pool-size: 17
+      minimum-idle: 8
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+      pool-name: HikariPool-Test
+
+  data:
+    redis:
+      host: host.docker.internal
+      port: 6379
+
+  jpa:
+    hibernate:
+      ddl-auto: none
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+
+  devtools:
+    restart:
+      enabled: true
+    livereload:
+      enabled: true
+
+logging:
+  level:
+    p6spy: off
+    com.mudosa.musinsa: debug
+    org.hibernate.SQL: INFO
+    org.springframework.batch: warn
+
+jwt:
+  secret: test-secret-key-for-local-development-only-32chars
+  expiration: 86400000
+  refresh-expiration: 604800000
+
+tosspayments:
+  secret-key: ${TOSS_SECRET_KEY:test_gsk_docs_OaPz8L5KdmQXkzRz3y47BMw6}
+  client-key: ${TOSS_CLIENT_KEY:test_gck_docs_Ovk5rk1EwkEbP0W43n07xlzm}
+  confirm_url: https://api.tosspayments.com/v1/payments/confirm
+  base_cancel_url: https://api.tosspayments.com/v1/payments
+
+springdoc:
+  swagger-ui:
+    enabled: true
+  api-docs:
+    enabled: true
+
+settlement:
+  batch:
+    enabled: true
+    insert-mode: jdbc  # jpa | mybatis | jdbc (JDBC Batch INSERT)
+    creation:
+      chunk-size: 2000  # [테스트용] MySQL 튜닝 효과 측정
+      page-size: 1000
+    scheduler:
+      enabled: true
+      creation:
+        enabled: true
+      minute:
+        enabled: true  # Phase 3 테스트용 - 매 분 30초에 집계 실행
+
+fcm:
+  service-account-file: key/fdbdproject.json
+  topic-name: fdbdMessage
+  project-id: fdbdproject
+
+# OpenTelemetry 활성화 (성능 분석용)
+management:
+  tracing:
+    enabled: true
+    sampling:
+      probability: 1.0
+  otlp:
+    tracing:
+      endpoint: http://172.16.24.17:4318/v1/traces

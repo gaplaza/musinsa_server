@@ -6,9 +6,6 @@ import lombok.Getter;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
-/**
- * 주간 집계 DTO
- */
 @Getter
 public class WeeklyAggregationDto {
 

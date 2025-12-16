@@ -1,41 +1,119 @@
 package com.mudosa.musinsa.settlement.domain.service;
 
 import com.mudosa.musinsa.common.vo.Money;
+import com.mudosa.musinsa.exception.BusinessException;
+import com.mudosa.musinsa.exception.ErrorCode;
+import com.mudosa.musinsa.settlement.domain.model.PgFeePolicy;
+import com.mudosa.musinsa.settlement.domain.repository.PgFeePolicyRepository;
+import jakarta.annotation.PostConstruct;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
-import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 
-/**
- * PG 수수료 계산 도메인 서비스
- */
 @Slf4j
 @Component
+@RequiredArgsConstructor
 public class PgFeeCalculator {
 
-    private static final BigDecimal CARD_FEE_RATE = new BigDecimal("0.034");        // 3.4%
-    private static final BigDecimal VIRTUAL_ACCOUNT_FEE = new BigDecimal("400");    // 건당 400원
-    private static final BigDecimal EASY_PAYMENT_FEE_RATE = new BigDecimal("0.034"); // 3.4%
-    private static final BigDecimal MOBILE_FEE_RATE = new BigDecimal("0.035");       // 3.5%
-    private static final BigDecimal BANK_TRANSFER_FEE_RATE = new BigDecimal("0.020"); // 2.0%
-    private static final BigDecimal DEFAULT_FEE_RATE = new BigDecimal("0.034");      // 기본 3.4%
+    private final PgFeePolicyRepository pgFeePolicyRepository;
 
-    public Money calculate(String paymentMethod, Money transactionAmount) {
-        if (paymentMethod == null) {
-            log.warn("결제수단이 null입니다. 기본 수수료(3.4%) 적용");
-            return transactionAmount.multiply(DEFAULT_FEE_RATE);
+    private static final String DEFAULT_PG_PROVIDER = "TOSS";
+
+    private Map<String, List<PgFeePolicy>> policyCache = new ConcurrentHashMap<>();
+
+    @PostConstruct
+    public void initCache() {
+        refreshCache();
+    }
+
+    public void refreshCache() {
+        List<PgFeePolicy> allPolicies = pgFeePolicyRepository.findAll();
+
+        policyCache.clear();
+
+        allPolicies.stream()
+            .filter(PgFeePolicy::isActive)
+            .forEach(policy -> {
+                String key = buildCacheKey(policy.getPgProvider(), policy.getPaymentMethod());
+                policyCache.computeIfAbsent(key, k -> new java.util.ArrayList<>()).add(policy);
+            });
+
+        log.info("[PgFeeCalculator] 캐시 초기화 완료 - 총 {}건, {}개 조합",
+            allPolicies.size(), policyCache.size());
+    }
+
+    private String buildCacheKey(String pgProvider, String paymentMethod) {
+        return pgProvider + "_" + paymentMethod;
+    }
+
+    public Money calculate(String pgProvider, String paymentMethod, Money transactionAmount) {
+        return calculate(pgProvider, paymentMethod, transactionAmount, LocalDate.now());
+    }
+
+    public Money calculate(
+        String pgProvider,
+        String paymentMethod,
+        Money transactionAmount,
+        LocalDate targetDate
+    ) {
+
+        if (pgProvider == null) {
+            log.warn("⚠️ [PG사 정보 누락] pgProvider가 null입니다. 기본 PG사({}) 사용", DEFAULT_PG_PROVIDER);
+            pgProvider = DEFAULT_PG_PROVIDER;
         }
 
-        return switch (paymentMethod) {
-            case "카드" -> transactionAmount.multiply(CARD_FEE_RATE);
-            case "가상계좌" -> new Money(VIRTUAL_ACCOUNT_FEE);
-            case "간편결제" -> transactionAmount.multiply(EASY_PAYMENT_FEE_RATE);
-            case "휴대폰" -> transactionAmount.multiply(MOBILE_FEE_RATE);
-            case "계좌이체" -> transactionAmount.multiply(BANK_TRANSFER_FEE_RATE);
-            default -> {
-                log.warn("알 수 없는 결제수단: {}. 기본 수수료(3.4%) 적용", paymentMethod);
-                yield transactionAmount.multiply(DEFAULT_FEE_RATE);
-            }
+        if (paymentMethod == null) {
+            log.error("⚠️ [결제수단 누락] paymentMethod가 null입니다. PG사: {}", pgProvider);
+            throw new BusinessException(
+                ErrorCode.PG_FEE_POLICY_NOT_FOUND,
+                String.format("결제수단이 null입니다. PG사: %s", pgProvider)
+            );
+        }
+
+        String finalPgProvider = pgProvider;
+        String finalPaymentMethod = paymentMethod;
+
+        return findEffectivePolicyFromCache(pgProvider, paymentMethod, targetDate)
+            .map(policy -> calculateFromPolicy(policy, transactionAmount))
+            .orElseThrow(() -> {
+                log.error("⚠️ [PG 수수료 정책 없음] PG사: {}, 결제수단: {}, 날짜: {}",
+                    finalPgProvider, finalPaymentMethod, targetDate);
+                return new BusinessException(
+                    ErrorCode.PG_FEE_POLICY_NOT_FOUND,
+                    String.format("PG 수수료 정책을 찾을 수 없습니다. PG사: %s, 결제수단: %s, 날짜: %s",
+                        finalPgProvider, finalPaymentMethod, targetDate)
+                );
+            });
+    }
+
+    private Optional<PgFeePolicy> findEffectivePolicyFromCache(
+        String pgProvider,
+        String paymentMethod,
+        LocalDate targetDate
+    ) {
+        String key = buildCacheKey(pgProvider, paymentMethod);
+        List<PgFeePolicy> policies = policyCache.get(key);
+
+        if (policies == null || policies.isEmpty()) {
+            return Optional.empty();
+        }
+
+        return policies.stream()
+            .filter(p -> p.getEffectiveFrom() != null && !p.getEffectiveFrom().isAfter(targetDate))
+            .filter(p -> p.getEffectiveTo() == null || !p.getEffectiveTo().isBefore(targetDate))
+            .max((a, b) -> a.getEffectiveFrom().compareTo(b.getEffectiveFrom()));
+    }
+
+    private Money calculateFromPolicy(PgFeePolicy policy, Money transactionAmount) {
+        return switch (policy.getFeeType()) {
+            case RATE -> transactionAmount.multiply(policy.getFeeValue()).roundToWon();
+            case FIXED -> new Money(policy.getFeeValue());
         };
     }
 }

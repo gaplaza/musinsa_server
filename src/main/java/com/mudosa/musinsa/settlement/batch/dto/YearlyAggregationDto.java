@@ -5,9 +5,6 @@ import lombok.Getter;
 
 import java.math.BigDecimal;
 
-/**
- * 연간 집계 DTO
- */
 @Getter
 public class YearlyAggregationDto {
 

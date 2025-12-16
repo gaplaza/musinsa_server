@@ -28,26 +28,14 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.temporal.WeekFields;
 import java.util.List;
-import java.util.Locale;
+import java.util.Map;
 import java.util.stream.Collectors;
 
-/**
- * 정산 조회 온니
- *
- * 프론트엔드에 정산 데이터를 제공
- * SettlementController API 호출 시 실행
- *
- * - @Transactional(readOnly = true)
- * - 페이징
- */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class SettlementQueryService {
-
-    private static final int WEEK_LOOKUP_DAYS = 7;
-    private static final int STATISTICS_PAGE_SIZE = 1;
 
     private final SettlementDailyRepository dailyRepository;
     private final SettlementWeeklyRepository weeklyRepository;
@@ -56,18 +44,18 @@ public class SettlementQueryService {
     private final SettlementPerTransactionRepository perTransactionRepository;
     private final BrandRepository brandRepository;
 
-    /* 일일 정산 목록 조회 (페이징) */
+    
     public Page<SettlementDailyResponse> getDailySettlements(Long brandId, Pageable pageable) {
         log.info("일일 정산 목록 조회 - brandId: {}", brandId);
 
-        Page<SettlementDaily> settlements;
-
-        if (brandId == null) {
-            // brandId가 없으면 모든 브랜드 조회
-            settlements = dailyRepository.findAll(pageable);
-        } else {
-            settlements = dailyRepository.findByBrandIdOrderBySettlementDateDesc(brandId, pageable);
-        }
+        Page<SettlementDaily> settlements = dailyRepository.findAllWithFilters(
+            brandId,
+            null,
+            null,
+            null,
+            null,
+            pageable
+        );
 
         return settlements.map(settlement -> {
             String brandName = getBrandName(settlement.getBrandId());
@@ -75,7 +63,7 @@ public class SettlementQueryService {
         });
     }
 
-    /* 일일 정산 상세 조회 */
+    
     public SettlementDailyResponse getDailySettlement(Long settlementDailyId) {
         log.info("일일 정산 상세 조회 - id: {}", settlementDailyId);
 
@@ -87,18 +75,25 @@ public class SettlementQueryService {
         return SettlementDailyResponse.from(settlement, brandName);
     }
 
-    /* 주간 정산 목록 조회 (페이징) */
+    
     public Page<SettlementWeeklyResponse> getWeeklySettlements(Long brandId, Pageable pageable) {
         log.info("주간 정산 목록 조회 - brandId: {}", brandId);
 
-        Page<SettlementWeekly> settlements = weeklyRepository.findByBrandIdOrderByWeekStartDateDesc(brandId, pageable);
-
+        List<SettlementWeekly> allSettlements = weeklyRepository.findByBrandIdOrderByWeekStartDateDesc(brandId);
         String brandName = getBrandName(brandId);
 
-        return settlements.map(settlement -> SettlementWeeklyResponse.from(settlement, brandName));
+        int start = (int) pageable.getOffset();
+        int end = Math.min((start + pageable.getPageSize()), allSettlements.size());
+
+        List<SettlementWeeklyResponse> responseList = allSettlements.subList(start, end)
+            .stream()
+            .map(settlement -> SettlementWeeklyResponse.from(settlement, brandName))
+            .collect(Collectors.toList());
+
+        return new PageImpl<>(responseList, pageable, allSettlements.size());
     }
 
-    /* 주간 정산 상세 조회 */
+    
     public SettlementWeeklyResponse getWeeklySettlement(Long settlementWeeklyId) {
         log.info("주간 정산 상세 조회 - id: {}", settlementWeeklyId);
 
@@ -110,18 +105,18 @@ public class SettlementQueryService {
         return SettlementWeeklyResponse.from(settlement, brandName);
     }
 
-    /* 월간 정산 목록 조회 (페이징) */
+    
     public Page<SettlementMonthlyResponse> getMonthlySettlements(Long brandId, Pageable pageable) {
         log.info("월간 정산 목록 조회 - brandId: {}", brandId);
 
-        Page<SettlementMonthly> settlements;
-
-        if (brandId == null) {
-            // brandId가 없으면 모든 브랜드 조회
-            settlements = monthlyRepository.findAll(pageable);
-        } else {
-            settlements = monthlyRepository.findByBrandIdOrderBySettlementYearDescSettlementMonthDesc(brandId, pageable);
-        }
+        Page<SettlementMonthly> settlements = monthlyRepository.findAllWithFilters(
+            brandId,
+            null,
+            null,
+            null,
+            null,
+            pageable
+        );
 
         return settlements.map(settlement -> {
             String brandName = getBrandName(settlement.getBrandId());
@@ -129,7 +124,7 @@ public class SettlementQueryService {
         });
     }
 
-    /* 월간 정산 상세 조회 */
+    
     public SettlementMonthlyResponse getMonthlySettlement(Long settlementMonthlyId) {
         log.info("월간 정산 상세 조회 - id: {}", settlementMonthlyId);
 
@@ -141,18 +136,25 @@ public class SettlementQueryService {
         return SettlementMonthlyResponse.from(settlement, brandName);
     }
 
-    /* 연간 정산 목록 조회 (페이징) */
+    
     public Page<SettlementYearlyResponse> getYearlySettlements(Long brandId, Pageable pageable) {
         log.info("연간 정산 목록 조회 - brandId: {}", brandId);
 
-        Page<SettlementYearly> settlements = yearlyRepository.findByBrandIdOrderBySettlementYearDesc(brandId, pageable);
-
+        List<SettlementYearly> allSettlements = yearlyRepository.findByBrandIdOrderBySettlementYearDesc(brandId);
         String brandName = getBrandName(brandId);
 
-        return settlements.map(settlement -> SettlementYearlyResponse.from(settlement, brandName));
+        int start = (int) pageable.getOffset();
+        int end = Math.min((start + pageable.getPageSize()), allSettlements.size());
+
+        List<SettlementYearlyResponse> responseList = allSettlements.subList(start, end)
+            .stream()
+            .map(settlement -> SettlementYearlyResponse.from(settlement, brandName))
+            .collect(Collectors.toList());
+
+        return new PageImpl<>(responseList, pageable, allSettlements.size());
     }
 
-    /* 연간 정산 상세 조회 */
+    
     public SettlementYearlyResponse getYearlySettlement(Long settlementYearlyId) {
         log.info("연간 정산 상세 조회 - id: {}", settlementYearlyId);
 
@@ -164,7 +166,7 @@ public class SettlementQueryService {
         return SettlementYearlyResponse.from(settlement, brandName);
     }
 
-    /* 거래별 정산 목록 조회 (페이징) */
+    
     public Page<SettlementPerTransactionResponse> getPerTransactionSettlements(
         Long brandId,
         LocalDate startDate,
@@ -174,24 +176,15 @@ public class SettlementQueryService {
         log.info("거래별 정산 목록 조회 - brandId: {}, startDate: {}, endDate: {}",
             brandId, startDate, endDate);
 
-        List<SettlementPerTransaction> transactions = perTransactionRepository
-            .findByBrandIdAndTransactionDateLocalBetween(brandId, startDate, endDate);
+        Page<SettlementPerTransaction> transactions = perTransactionRepository
+            .findByBrandIdAndTransactionDateLocalBetween(brandId, startDate, endDate, pageable);
 
         String brandName = getBrandName(brandId);
 
-        // 리스트를 Page로 변환 (페이징 적용)
-        int start = (int) pageable.getOffset();
-        int end = Math.min((start + pageable.getPageSize()), transactions.size());
-
-        List<SettlementPerTransactionResponse> responseList = transactions.subList(start, end)
-            .stream()
-            .map(tx -> SettlementPerTransactionResponse.from(tx, brandName))
-            .collect(Collectors.toList());
-
-        return new PageImpl<>(responseList, pageable, transactions.size());
+        return transactions.map(tx -> SettlementPerTransactionResponse.from(tx, brandName));
     }
 
-    /* 거래별 정산 단건 조회 */
+    
     public SettlementPerTransactionResponse getPerTransactionSettlement(Long transactionId) {
         log.info("거래별 정산 단건 조회 - id: {}", transactionId);
 
@@ -203,7 +196,7 @@ public class SettlementQueryService {
         return SettlementPerTransactionResponse.from(transaction, brandName);
     }
 
-    /* 정산 통계 조회 */
+    
     public SettlementStatisticsResponse getStatistics(Long brandId) {
         log.info("정산 통계 조회 - brandId: {}", brandId);
 
@@ -234,23 +227,11 @@ public class SettlementQueryService {
         );
     }
 
-    /* 오늘 통계 조회 */
+    
     private SettlementStatistics getTodayStatistics(Long brandId, LocalDate today) {
         if (brandId == null) {
-            // 전체 브랜드의 오늘 통계 합산
-            var allDailySettlements = dailyRepository.findAll().stream()
-                .filter(s -> s.getSettlementDate().equals(today))
-                .toList();
-
-            Money totalSales = allDailySettlements.stream()
-                .map(SettlementDaily::getTotalSalesAmount)
-                .reduce(Money.ZERO, Money::add);
-
-            Integer totalOrderCount = allDailySettlements.stream()
-                .map(SettlementDaily::getTotalOrderCount)
-                .reduce(0, Integer::sum);
-
-            return new SettlementStatistics(totalSales, totalOrderCount);
+            Map<String, Object> stats = dailyRepository.sumAllBySettlementDate(today);
+            return SettlementStatistics.fromMap(stats);
         }
 
         return dailyRepository
@@ -259,57 +240,29 @@ public class SettlementQueryService {
             .orElseGet(SettlementStatistics::empty);
     }
 
-    /* 이번 주 통계 조회 */
+    
     private SettlementStatistics getWeekStatistics(Long brandId, LocalDate today) {
+        WeekFields weekFields = WeekFields.ISO;
+        int year = today.getYear();
+        int month = today.getMonthValue();
+        int weekOfMonth = today.get(weekFields.weekOfMonth());
+
         if (brandId == null) {
-            // 전체 브랜드의 이번 주 통계 합산
-            var allWeeklySettlements = weeklyRepository.findAll().stream()
-                .filter(s -> !s.getWeekStartDate().isBefore(today.minusDays(WEEK_LOOKUP_DAYS))
-                    && !s.getWeekStartDate().isAfter(today))
-                .toList();
-
-            Money totalSales = allWeeklySettlements.stream()
-                .map(SettlementWeekly::getTotalSalesAmount)
-                .reduce(Money.ZERO, Money::add);
-
-            Integer totalOrderCount = allWeeklySettlements.stream()
-                .map(SettlementWeekly::getTotalOrderCount)
-                .reduce(0, Integer::sum);
-
-            return new SettlementStatistics(totalSales, totalOrderCount);
+            Map<String, Object> stats = weeklyRepository.sumAllByYearAndMonthAndWeekOfMonth(year, month, weekOfMonth);
+            return SettlementStatistics.fromMap(stats);
         }
 
         return weeklyRepository
-            .findByBrandIdAndWeekStartDateBetween(
-                brandId,
-                today.minusDays(WEEK_LOOKUP_DAYS),
-                today,
-                Pageable.ofSize(STATISTICS_PAGE_SIZE)
-            )
-            .getContent()
-            .stream()
-            .findFirst()
+            .findByBrandIdAndSettlementYearAndSettlementMonthAndWeekOfMonth(brandId, year, month, weekOfMonth)
             .map(SettlementStatistics::from)
             .orElseGet(SettlementStatistics::empty);
     }
 
-    /* 이번 달 통계 조회 */
+    
     private SettlementStatistics getMonthStatistics(Long brandId, int year, int month) {
         if (brandId == null) {
-            // 전체 브랜드의 이번 달 통계 합산
-            var allMonthlySettlements = monthlyRepository.findAll().stream()
-                .filter(s -> s.getSettlementYear() == year && s.getSettlementMonth() == month)
-                .toList();
-
-            Money totalSales = allMonthlySettlements.stream()
-                .map(SettlementMonthly::getTotalSalesAmount)
-                .reduce(Money.ZERO, Money::add);
-
-            Integer totalOrderCount = allMonthlySettlements.stream()
-                .map(SettlementMonthly::getTotalOrderCount)
-                .reduce(0, Integer::sum);
-
-            return new SettlementStatistics(totalSales, totalOrderCount);
+            Map<String, Object> stats = monthlyRepository.sumAllByYearAndMonth(year, month);
+            return SettlementStatistics.fromMap(stats);
         }
 
         return monthlyRepository
@@ -318,23 +271,11 @@ public class SettlementQueryService {
             .orElseGet(SettlementStatistics::empty);
     }
 
-    /* 올해 통계 조회 */
+    
     private SettlementStatistics getYearStatistics(Long brandId, int year) {
         if (brandId == null) {
-            // 전체 브랜드의 올해 통계 합산
-            var allYearlySettlements = yearlyRepository.findAll().stream()
-                .filter(s -> s.getSettlementYear() == year)
-                .toList();
-
-            Money totalSales = allYearlySettlements.stream()
-                .map(SettlementYearly::getTotalSalesAmount)
-                .reduce(Money.ZERO, Money::add);
-
-            Integer totalOrderCount = allYearlySettlements.stream()
-                .map(SettlementYearly::getTotalOrderCount)
-                .reduce(0, Integer::sum);
-
-            return new SettlementStatistics(totalSales, totalOrderCount);
+            Map<String, Object> stats = yearlyRepository.sumAllByYear(year);
+            return SettlementStatistics.fromMap(stats);
         }
 
         return yearlyRepository
@@ -343,11 +284,14 @@ public class SettlementQueryService {
             .orElseGet(SettlementStatistics::empty);
     }
 
-    /* 전체 통계 조회 (모든 연도 합산) */
+    
     private SettlementStatistics getTotalStatistics(Long brandId) {
-        var allYearlySettlements = (brandId == null)
-            ? yearlyRepository.findAll()
-            : yearlyRepository.findByBrandId(brandId);
+        if (brandId == null) {
+            Map<String, Object> stats = yearlyRepository.sumAll();
+            return SettlementStatistics.fromMap(stats);
+        }
+
+        var allYearlySettlements = yearlyRepository.findByBrandId(brandId);
 
         Money totalSales = allYearlySettlements.stream()
             .map(SettlementYearly::getTotalSalesAmount)
@@ -360,15 +304,8 @@ public class SettlementQueryService {
         return new SettlementStatistics(totalSales, totalOrderCount);
     }
 
-    /* 정산 통계 데이터 홀더 */
-    private static class SettlementStatistics {
-        private final Money salesAmount;
-        private final Integer orderCount;
-
-        private SettlementStatistics(Money salesAmount, Integer orderCount) {
-            this.salesAmount = salesAmount;
-            this.orderCount = orderCount;
-        }
+    
+    private record SettlementStatistics(Money salesAmount, Integer orderCount) {
 
         static SettlementStatistics from(SettlementDaily daily) {
             return new SettlementStatistics(
@@ -398,12 +335,22 @@ public class SettlementQueryService {
             );
         }
 
+        static SettlementStatistics fromMap(Map<String, Object> stats) {
+            BigDecimal totalSales = (BigDecimal) stats.get("totalSalesAmount");
+            Object orderCountObj = stats.get("totalOrderCount");
+            int totalOrders = (orderCountObj instanceof Long)
+                ? ((Long) orderCountObj).intValue()
+                : (Integer) orderCountObj;
+
+            return new SettlementStatistics(new Money(totalSales), totalOrders);
+        }
+
         static SettlementStatistics empty() {
             return new SettlementStatistics(Money.ZERO, 0);
         }
     }
 
-    /* 브랜드명 조회 */
+    
     private String getBrandName(Long brandId) {
         Brand brand = brandRepository.findById(brandId)
             .orElseThrow(() -> new BusinessException(ErrorCode.BRAND_NOT_FOUND));

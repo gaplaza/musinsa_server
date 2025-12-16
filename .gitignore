@@ -54,3 +54,6 @@ Thumbs.db
 
 ### Docker ###
 docker-compose.override.yml
+src/main/java/com/mudosa/musinsa/coupon/
+src/main/java/com/mudosa/musinsa/event/
+src/main/java/com/mudosa/musinsa/product/

@@ -19,19 +19,6 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.dao.DataAccessException;
 import org.springframework.transaction.PlatformTransactionManager;
 
-/**
- * 연간 정산 집계 배치 Job
- *
- * 월간 정산 데이터를 연간 단위로 집계
- * 매년 1월 1일 자동 실행
- *
- * 처리 흐름:
- * -> 모든 브랜드 ID 조회 (BrandIdReader)
- * -> 브랜드별로 작년 1월~12월의 월간 정산 데이터 집계
- * -> SettlementMonthly → SettlementYearly 변환 및 저장
- *
- * 집계 기간: 작년 (1월 ~ 12월)
- */
 @Slf4j
 @Configuration
 @Profile("disabled")  // TODO: 배치 설정 완료 후 "!dev"로 복구 필요

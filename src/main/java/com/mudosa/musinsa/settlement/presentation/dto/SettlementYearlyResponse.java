@@ -9,9 +9,6 @@ import lombok.Getter;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
-/**
- * 연간 정산 조회 응답 DTO
- */
 @Getter
 @Builder
 public class SettlementYearlyResponse {

@@ -3,9 +3,7 @@ package com.mudosa.musinsa.settlement.domain.model;
 import com.mudosa.musinsa.common.domain.model.BaseEntity;
 import com.mudosa.musinsa.common.vo.Money;
 import jakarta.persistence.*;
-import lombok.AccessLevel;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import lombok.extern.slf4j.Slf4j;
 
 import java.time.DateTimeException;
@@ -20,13 +18,16 @@ import java.time.ZoneId;
         @UniqueConstraint(columnNames = {"settlement_number"})
     },
     indexes = {
-        @Index(name = "idx_brand_year_month_week", columnList = "brand_id, settlement_year, settlement_month, week_of_month"),
-        @Index(name = "idx_settlement_status", columnList = "settlement_status")
+        @Index(name = "idx_weekly_brand_year_month_week", columnList = "brand_id, settlement_year, settlement_month, week_of_month"),
+        @Index(name = "idx_weekly_settlement_status", columnList = "settlement_status")
     }
 )
 @Getter
+@Builder(access = AccessLevel.PUBLIC)
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Slf4j
+@SuppressWarnings("lombok")
 public class SettlementWeekly extends BaseEntity {
 
     @Id
@@ -91,13 +92,14 @@ public class SettlementWeekly extends BaseEntity {
     @Column(name = "aggregated_at")
     private LocalDateTime aggregatedAt;
 
+    @Column(name = "confirmed_at")
+    private LocalDateTime confirmedAt;
+
     @Column(name = "completed_at")
     private LocalDateTime completedAt;
 
-    /**
-     * 주간 정산 생성
-     */
-    public static SettlementWeekly create(
+    
+    public static SettlementWeekly createWeeklySettlement(
         Long brandId,
         int year,
         int weekOfMonth,
@@ -106,53 +108,92 @@ public class SettlementWeekly extends BaseEntity {
         String settlementNumber,
         String timezone
     ) {
-        SettlementWeekly settlement = new SettlementWeekly();
-        settlement.brandId = brandId;
-        settlement.settlementNumber = settlementNumber;
-        settlement.weekStartDate = weekStartDate;
-        settlement.weekEndDate = weekEndDate;
+        int weekDayCount = (int) java.time.temporal.ChronoUnit.DAYS.between(weekStartDate, weekEndDate) + 1;
 
-        // 연도, 월, 주차 설정
-        settlement.settlementYear = year;
-        settlement.settlementMonth = weekStartDate.getMonthValue();
-        settlement.weekOfMonth = weekOfMonth;
+        return builder()
+            .brandId(brandId)
+            .settlementNumber(settlementNumber)
+            .settlementYear(year)
+            .settlementMonth(weekStartDate.getMonthValue())
+            .weekOfMonth(weekOfMonth)
+            .weekStartDate(weekStartDate)
+            .weekEndDate(weekEndDate)
+            .weekDayCount(weekDayCount)
+            .settlementTimezone(validateTimezone(timezone))
+            .settlementStatus(SettlementStatus.PENDING)
+            .totalOrderCount(0)
+            .totalSalesAmount(Money.ZERO)
+            .totalCommissionAmount(Money.ZERO)
+            .totalTaxAmount(Money.ZERO)
+            .totalPgFeeAmount(Money.ZERO)
+            .finalSettlementAmount(Money.ZERO)
+            .build();
+    }
 
-        // 실제 일수 계산
-        settlement.weekDayCount = (int) java.time.temporal.ChronoUnit.DAYS.between(weekStartDate, weekEndDate) + 1;
+    
+    public static SettlementWeekly createFromAggregation(
+        Long brandId,
+        int year,
+        int weekOfMonth,
+        LocalDate weekStartDate,
+        LocalDate weekEndDate,
+        String settlementNumber,
+        String timezone,
+        int totalOrderCount,
+        Money totalSalesAmount,
+        Money totalCommissionAmount,
+        Money totalTaxAmount,
+        Money totalPgFeeAmount
+    ) {
+        Money finalAmount = totalSalesAmount
+            .subtract(totalCommissionAmount)
+            .subtract(totalTaxAmount)
+            .subtract(totalPgFeeAmount);
 
-        // 타임존 검증
+        int weekDayCount = (int) java.time.temporal.ChronoUnit.DAYS.between(weekStartDate, weekEndDate) + 1;
+
+        return builder()
+            .brandId(brandId)
+            .settlementNumber(settlementNumber)
+            .settlementYear(year)
+            .settlementMonth(weekStartDate.getMonthValue())
+            .weekOfMonth(weekOfMonth)
+            .weekStartDate(weekStartDate)
+            .weekEndDate(weekEndDate)
+            .weekDayCount(weekDayCount)
+            .settlementTimezone(validateTimezone(timezone))
+            .totalOrderCount(totalOrderCount)
+            .totalSalesAmount(totalSalesAmount)
+            .totalCommissionAmount(totalCommissionAmount)
+            .totalTaxAmount(totalTaxAmount)
+            .totalPgFeeAmount(totalPgFeeAmount)
+            .finalSettlementAmount(finalAmount)
+            .settlementStatus(SettlementStatus.PENDING)
+            .build();
+    }
+
+    private static String validateTimezone(String timezone) {
         try {
-            ZoneId zoneId = ZoneId.of(timezone);
-            settlement.settlementTimezone = timezone;
+            return ZoneId.of(timezone).getId();
         } catch (DateTimeException e) {
             log.warn("유효하지 않은 타임존: {}. UTC로 기본 설정합니다.", timezone, e);
-            settlement.settlementTimezone = "UTC";
+            return "UTC";
         }
-
-        return settlement;
     }
 
-    /* 해당 월의 몇 번째 주인지 계산 (1-6) */
-    private static int calculateWeekOfMonth(LocalDate date) {
-        LocalDate firstDayOfMonth = date.withDayOfMonth(1);
-        int dayOfMonth = date.getDayOfMonth();
-        int firstDayOfWeekValue = firstDayOfMonth.getDayOfWeek().getValue(); // 1(월)~7(일)
-
-        // 첫 주는 월초부터 첫 일요일까지
-        return ((dayOfMonth + firstDayOfWeekValue - 2) / 7) + 1;
+    
+    public static SettlementWeeklyBuilder testBuilder() {
+        return builder()
+            .settlementStatus(SettlementStatus.PENDING)
+            .settlementTimezone("UTC")
+            .totalOrderCount(0)
+            .totalSalesAmount(Money.ZERO)
+            .totalCommissionAmount(Money.ZERO)
+            .totalTaxAmount(Money.ZERO)
+            .totalPgFeeAmount(Money.ZERO)
+            .finalSettlementAmount(Money.ZERO);
     }
 
-    /* 일일 정산 추가 (집계) */
-    public void addDailySettlement(SettlementDaily daily) {
-        this.totalOrderCount += daily.getTotalOrderCount();
-        this.totalSalesAmount = this.totalSalesAmount.add(daily.getTotalSalesAmount());
-        this.totalCommissionAmount = this.totalCommissionAmount.add(daily.getTotalCommissionAmount());
-        this.totalTaxAmount = this.totalTaxAmount.add(daily.getTotalTaxAmount());
-        this.totalPgFeeAmount = this.totalPgFeeAmount.add(daily.getTotalPgFeeAmount());
-        this.finalSettlementAmount = calculateFinalAmount();
-    }
-
-    /* 집계된 데이터 직접 설정 (쿼리 기반 집계용) */
     public void setAggregatedData(
         int totalOrderCount,
         Money totalSalesAmount,
@@ -168,7 +209,22 @@ public class SettlementWeekly extends BaseEntity {
         this.finalSettlementAmount = calculateFinalAmount();
     }
 
-    /* 최종 정산 금액 계산 */
+    
+    public void addAggregatedData(
+        int orderCount,
+        Money salesAmount,
+        Money commissionAmount,
+        Money taxAmount,
+        Money pgFeeAmount
+    ) {
+        this.totalOrderCount += orderCount;
+        this.totalSalesAmount = this.totalSalesAmount.add(salesAmount);
+        this.totalCommissionAmount = this.totalCommissionAmount.add(commissionAmount);
+        this.totalTaxAmount = this.totalTaxAmount.add(taxAmount);
+        this.totalPgFeeAmount = this.totalPgFeeAmount.add(pgFeeAmount);
+        this.finalSettlementAmount = calculateFinalAmount();
+    }
+
     private Money calculateFinalAmount() {
         return totalSalesAmount
             .subtract(totalCommissionAmount)
@@ -176,28 +232,18 @@ public class SettlementWeekly extends BaseEntity {
             .subtract(totalPgFeeAmount);
     }
 
-    /* 집계 처리 시작 */
     public void startProcessing() {
-        this.settlementStatus = SettlementStatus.PROCESSING;
+        this.settlementStatus = SettlementStatus.PENDING;
         this.aggregatedAt = LocalDateTime.now(ZoneId.of("UTC"));
     }
 
-    /* 정산 완료 */
+    public void confirm() {
+        this.settlementStatus = SettlementStatus.CONFIRMED;
+        this.confirmedAt = LocalDateTime.now(ZoneId.of("UTC"));
+    }
+
     public void complete() {
         this.settlementStatus = SettlementStatus.COMPLETED;
         this.completedAt = LocalDateTime.now(ZoneId.of("UTC"));
-    }
-
-    /* 정산 실패 */
-    public void fail() {
-        this.settlementStatus = SettlementStatus.FAILED;
-    }
-
-    /* 일평균 매출 계산 (짧은 주 보정) */
-    public Money getAverageDailySales() {
-        if (weekDayCount == null || weekDayCount == 0) {
-            return Money.ZERO;
-        }
-        return totalSalesAmount.divide(java.math.BigDecimal.valueOf(weekDayCount));
     }
 }

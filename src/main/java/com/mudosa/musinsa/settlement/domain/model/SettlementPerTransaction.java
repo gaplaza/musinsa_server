@@ -3,9 +3,7 @@ package com.mudosa.musinsa.settlement.domain.model;
 import com.mudosa.musinsa.common.domain.model.CreatedOnlyEntity;
 import com.mudosa.musinsa.common.vo.Money;
 import jakarta.persistence.*;
-import lombok.AccessLevel;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import lombok.extern.slf4j.Slf4j;
 
 import java.math.BigDecimal;
@@ -15,12 +13,11 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 
-/**
- * 거래별 정산 애그리거트 루트
- */
 @Entity
 @Table(name = "settlements_per_transaction")
 @Getter
+@Builder(access = AccessLevel.PUBLIC)
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Slf4j
 public class SettlementPerTransaction extends CreatedOnlyEntity {
@@ -71,11 +68,13 @@ public class SettlementPerTransaction extends CreatedOnlyEntity {
     @Column(name = "timezone_offset", nullable = false, length = 10)
     private String timezoneOffset = "+09:00";
 
-    /* 정산 거래 생성
-     *
-     * @param pgFeeAmount PG사 수수료 (Payment 도메인에서 계산된 값)
-     */
-    public static SettlementPerTransaction create(
+    @Enumerated(EnumType.STRING)
+    @Column(name = "aggregation_status", nullable = false, length = 20)
+    @Builder.Default
+    private AggregationStatus aggregationStatus = AggregationStatus.NOT_AGGREGATED;
+
+    
+    public static SettlementPerTransaction createTransaction(
         Long brandId,
         Long paymentId,
         String pgTransactionId,
@@ -85,52 +84,64 @@ public class SettlementPerTransaction extends CreatedOnlyEntity {
         TransactionType transactionType,
         String timezoneOffset
     ) {
-        SettlementPerTransaction settlement = new SettlementPerTransaction();
-        settlement.brandId = brandId;
-        settlement.paymentId = paymentId;
-        settlement.pgTransactionId = pgTransactionId;
-        settlement.transactionAmount = transactionAmount;
-        settlement.commissionRate = commissionRate;
-        settlement.pgFeeAmount = pgFeeAmount;
-        settlement.transactionType = transactionType;
 
-        // UTC 현재 시각
         ZonedDateTime utcNow = ZonedDateTime.now(ZoneId.of("UTC"));
-        settlement.transactionDate = utcNow.toLocalDateTime();
 
-        // 사용자 타임존 기준 날짜
+        String validatedTimezone;
         ZoneId userZoneId;
         try {
             userZoneId = ZoneId.of(timezoneOffset);
-            settlement.timezoneOffset = timezoneOffset;
+            validatedTimezone = timezoneOffset;
         } catch (DateTimeException e) {
             log.warn("유효하지 않은 타임존 오프셋: {}. UTC로 기본 설정합니다.", timezoneOffset, e);
-            settlement.timezoneOffset = "UTC";
+            validatedTimezone = "UTC";
             userZoneId = ZoneId.of("UTC");
         }
 
-        settlement.transactionDateLocal = utcNow
-            .withZoneSameInstant(userZoneId)
-            .toLocalDate();
-
-        // 플랫폼 수수료 계산
-        settlement.commissionAmount = transactionAmount
+        Money commissionAmount = transactionAmount
             .multiply(commissionRate)
-            .divide(100);
+            .divide(100)
+            .roundToWon();
 
-        // 부가세 계산
-        settlement.taxAmount = settlement.commissionAmount
+        Money taxAmount = commissionAmount
             .multiply(BigDecimal.valueOf(10))
-            .divide(100);
+            .divide(100)
+            .roundToWon();
 
-        return settlement;
+        return builder()
+            .brandId(brandId)
+            .paymentId(paymentId)
+            .pgTransactionId(pgTransactionId)
+            .transactionAmount(transactionAmount)
+            .commissionRate(commissionRate)
+            .commissionAmount(commissionAmount)
+            .taxAmount(taxAmount)
+            .pgFeeAmount(pgFeeAmount)
+            .transactionType(transactionType)
+            .transactionDate(utcNow.toLocalDateTime())
+            .transactionDateLocal(utcNow.withZoneSameInstant(userZoneId).toLocalDate())
+            .timezoneOffset(validatedTimezone)
+            .aggregationStatus(AggregationStatus.NOT_AGGREGATED)
+            .build();
     }
 
-    /* 최종 정산 금액 계산 */
+    
+    public static SettlementPerTransactionBuilder testBuilder() {
+        return builder()
+            .transactionType(TransactionType.ORDER)
+            .timezoneOffset("UTC");
+    }
+
+    
     public Money calculateFinalSettlementAmount() {
         return transactionAmount
             .subtract(commissionAmount)
             .subtract(taxAmount)
             .subtract(pgFeeAmount);
+    }
+
+    
+    public void markAsAggregated() {
+        this.aggregationStatus = AggregationStatus.AGGREGATED;
     }
 }

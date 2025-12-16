@@ -4,21 +4,159 @@
 
 <mapper namespace="com.mudosa.musinsa.settlement.domain.repository.SettlementPerTransactionMapper">
 
-    <!-- 일일 집계 쿼리 -->
-    <select id="aggregateByDaily" resultType="com.mudosa.musinsa.settlement.batch.dto.DailyAggregationDto">
+    <!-- 일일 집계 쿼리 (날짜 기준 - Daily Job용) -->
+    <select id="aggregateByDaily" resultType="com.mudosa.musinsa.settlement.application.dto.DailyAggregationDto">
         SELECT
             brand_id as brandId,
             transaction_date_local as settlementDate,
             COUNT(*) as totalOrderCount,
-            COALESCE(SUM(transaction_amount), 0) as totalSalesAmount,
-            COALESCE(SUM(commission_amount), 0) as totalCommissionAmount,
-            COALESCE(SUM(tax_amount), 0) as totalTaxAmount,
-            COALESCE(SUM(pg_fee_amount), 0) as totalPgFeeAmount
+            COALESCE(SUM(
+                CASE
+                    WHEN transaction_type = 'ORDER' THEN transaction_amount
+                    WHEN transaction_type = 'REFUND' THEN -transaction_amount
+                    ELSE 0
+                END
+            ), 0) as totalSalesAmount,
+            COALESCE(SUM(
+                CASE
+                    WHEN transaction_type = 'ORDER' THEN commission_amount
+                    WHEN transaction_type = 'REFUND' THEN -commission_amount
+                    ELSE 0
+                END
+            ), 0) as totalCommissionAmount,
+            COALESCE(SUM(
+                CASE
+                    WHEN transaction_type = 'ORDER' THEN tax_amount
+                    WHEN transaction_type = 'REFUND' THEN -tax_amount
+                    ELSE 0
+                END
+            ), 0) as totalTaxAmount,
+            COALESCE(SUM(
+                CASE
+                    WHEN transaction_type = 'ORDER' THEN pg_fee_amount
+                    WHEN transaction_type = 'REFUND' THEN -pg_fee_amount
+                    ELSE 0
+                END
+            ), 0) as totalPgFeeAmount
         FROM settlements_per_transaction
-        WHERE brand_id = #{brandId}
-          AND transaction_date_local BETWEEN #{startDate} AND #{endDate}
+        WHERE transaction_date_local BETWEEN #{startDate} AND #{endDate}
         GROUP BY brand_id, transaction_date_local
-        ORDER BY transaction_date_local
+        ORDER BY brand_id, transaction_date_local
     </select>
+
+    <!-- 미집계 데이터 집계 쿼리 (NOT_AGGREGATED 기준) -->
+    <select id="aggregateNotAggregated" resultType="com.mudosa.musinsa.settlement.application.dto.DailyAggregationDto">
+        SELECT
+            brand_id as brandId,
+            transaction_date_local as settlementDate,
+            COUNT(*) as totalOrderCount,
+            COALESCE(SUM(
+                CASE
+                    WHEN transaction_type = 'ORDER' THEN transaction_amount
+                    WHEN transaction_type = 'REFUND' THEN -transaction_amount
+                    ELSE 0
+                END
+            ), 0) as totalSalesAmount,
+            COALESCE(SUM(
+                CASE
+                    WHEN transaction_type = 'ORDER' THEN commission_amount
+                    WHEN transaction_type = 'REFUND' THEN -commission_amount
+                    ELSE 0
+                END
+            ), 0) as totalCommissionAmount,
+            COALESCE(SUM(
+                CASE
+                    WHEN transaction_type = 'ORDER' THEN tax_amount
+                    WHEN transaction_type = 'REFUND' THEN -tax_amount
+                    ELSE 0
+                END
+            ), 0) as totalTaxAmount,
+            COALESCE(SUM(
+                CASE
+                    WHEN transaction_type = 'ORDER' THEN pg_fee_amount
+                    WHEN transaction_type = 'REFUND' THEN -pg_fee_amount
+                    ELSE 0
+                END
+            ), 0) as totalPgFeeAmount
+        FROM settlements_per_transaction
+        WHERE aggregation_status = 'NOT_AGGREGATED'
+        GROUP BY brand_id, transaction_date_local
+    </select>
+
+    <!-- PROCESSING 상태 데이터 집계 쿼리 (재시작 시 복구용) -->
+    <select id="aggregateProcessing" resultType="com.mudosa.musinsa.settlement.application.dto.DailyAggregationDto">
+        SELECT
+            brand_id as brandId,
+            transaction_date_local as settlementDate,
+            COUNT(*) as totalOrderCount,
+            COALESCE(SUM(
+                CASE
+                    WHEN transaction_type = 'ORDER' THEN transaction_amount
+                    WHEN transaction_type = 'REFUND' THEN -transaction_amount
+                    ELSE 0
+                END
+            ), 0) as totalSalesAmount,
+            COALESCE(SUM(
+                CASE
+                    WHEN transaction_type = 'ORDER' THEN commission_amount
+                    WHEN transaction_type = 'REFUND' THEN -commission_amount
+                    ELSE 0
+                END
+            ), 0) as totalCommissionAmount,
+            COALESCE(SUM(
+                CASE
+                    WHEN transaction_type = 'ORDER' THEN tax_amount
+                    WHEN transaction_type = 'REFUND' THEN -tax_amount
+                    ELSE 0
+                END
+            ), 0) as totalTaxAmount,
+            COALESCE(SUM(
+                CASE
+                    WHEN transaction_type = 'ORDER' THEN pg_fee_amount
+                    WHEN transaction_type = 'REFUND' THEN -pg_fee_amount
+                    ELSE 0
+                END
+            ), 0) as totalPgFeeAmount
+        FROM settlements_per_transaction
+        WHERE aggregation_status = 'PROCESSING'
+        GROUP BY brand_id, transaction_date_local
+    </select>
+
+    <!-- ========== 멱등성 보장을 위한 상태 전이 쿼리 ========== -->
+
+    <!-- Step 1: NOT_AGGREGATED → PROCESSING -->
+    <update id="updateStatusToProcessing">
+        UPDATE settlements_per_transaction
+        SET aggregation_status = 'PROCESSING'
+        WHERE aggregation_status = 'NOT_AGGREGATED'
+    </update>
+
+    <!-- Step 2: PROCESSING → AGGREGATED -->
+    <update id="updateProcessingToAggregated">
+        UPDATE settlements_per_transaction
+        SET aggregation_status = 'AGGREGATED'
+        WHERE aggregation_status = 'PROCESSING'
+    </update>
+
+    <!-- 복구용: PROCESSING → NOT_AGGREGATED (롤백) -->
+    <update id="resetProcessingToNotAggregated">
+        UPDATE settlements_per_transaction
+        SET aggregation_status = 'NOT_AGGREGATED'
+        WHERE aggregation_status = 'PROCESSING'
+    </update>
+
+    <!-- PROCESSING 상태 건수 조회 -->
+    <select id="countProcessing" resultType="int">
+        SELECT COUNT(*)
+        FROM settlements_per_transaction
+        WHERE aggregation_status = 'PROCESSING'
+    </select>
+
+    <!-- [기존 호환] NOT_AGGREGATED → AGGREGATED 직접 전환 -->
+    <update id="updateAggregationStatusToAggregated">
+        UPDATE settlements_per_transaction
+        SET aggregation_status = 'AGGREGATED'
+        WHERE aggregation_status = 'NOT_AGGREGATED'
+    </update>
 
 </mapper>

@@ -20,24 +20,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * 정산 집계 서비스
- *
- * 정산 데이터를 단계별로 집계하여 통계 테이블에 저장
- * Spring Batch Job에서 자동 실행 or 수동 API 호출로 실행됨당
- *
- * 계층적 집계:
- * 1. 거래별 → 일일 집계 (SettlementPerTransaction → SettlementDaily)
- * 2. 일일 → 주간 집계 (SettlementDaily → SettlementWeekly)
- * 3. 일일 → 월간 집계 (SettlementDaily → SettlementMonthly)
- * 4. 월간 → 연간 집계 (SettlementMonthly → SettlementYearly)
- *
- * 호출 위치:
- * - DailySettlementAggregationJob (일일 배치)
- * - WeeklySettlementAggregationJob (주간 배치)
- * - MonthlySettlementAggregationJob (월간 배치)
- * - YearlySettlementAggregationJob (연간 배치)
- */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -53,19 +35,10 @@ public class SettlementAggregationService {
     private final SettlementYearlyRepository yearlyRepository;
     private final SettlementNumberGenerator settlementNumberGenerator;
 
-    /**
-     * 거래별 정산 데이터 -> 일일 정산으로 집계
-     *
-     * @param brandId 브랜드 ID
-     * @param startDate 시작일
-     * @param endDate 종료일
-     * @return 생성된 일일 정산 목록
-     */
     @Transactional
     public List<SettlementDaily> aggregateToDaily(Long brandId, LocalDate startDate, LocalDate endDate) {
         log.info("일일 정산 집계 시작: brandId={}, 기간={} ~ {}", brandId, startDate, endDate);
 
-        // settlements_per_transaction 집계
         List<DailyAggregationDto> aggregations = perTransactionMapper.aggregateByDaily(
             brandId, startDate, endDate
         );
@@ -91,7 +64,6 @@ public class SettlementAggregationService {
                 "Asia/Seoul"
             );
 
-            //TODO: 과연 분리하는게 맞을까
             setDailyAggregationData(daily, dto);
 
             daily.startProcessing();
@@ -106,23 +78,13 @@ public class SettlementAggregationService {
 
         log.info("일일 정산 {}건 생성 완료", dailySettlements.size());
 
-        //TODO: 리턴값 필요없음
         return dailySettlements;
     }
 
-    /**
-     * 일일 정산 데이터 -> 주간 정산으로 집계
-     *
-     * @param brandId 브랜드 ID
-     * @param startDate 시작일
-     * @param endDate 종료일
-     * @return 생성된 주간 정산 목록
-     */
     @Transactional
     public List<SettlementWeekly> aggregateToWeekly(Long brandId, LocalDate startDate, LocalDate endDate) {
         log.info("주간 정산 집계 시작: brandId={}, 기간={} ~ {}", brandId, startDate, endDate);
 
-        // settlements_daily 데이터 집계
         List<WeeklyAggregationDto> aggregations = dailyMapper.aggregateByWeekly(brandId, startDate, endDate);
 
         if (aggregations.isEmpty()) {
@@ -165,19 +127,10 @@ public class SettlementAggregationService {
         return weeklySettlements;
     }
 
-    /**
-     * 일일 정산 데이터 -> 월간 정산으로 집계
-     *
-     * @param brandId 브랜드 ID
-     * @param startDate 시작일
-     * @param endDate 종료일
-     * @return 생성된 월간 정산 목록
-     */
     @Transactional
     public List<SettlementMonthly> aggregateToMonthly(Long brandId, LocalDate startDate, LocalDate endDate) {
         log.info("월간 정산 집계 시작: brandId={}, 기간={} ~ {}", brandId, startDate, endDate);
 
-        // settlements_daily 데이터 집계
         List<MonthlyAggregationDto> aggregations = dailyMapper.aggregateByMonthly(brandId, startDate, endDate);
 
         if (aggregations.isEmpty()) {
@@ -218,13 +171,6 @@ public class SettlementAggregationService {
         return monthlySettlements;
     }
 
-    /**
-     * 월간 정산 데이터 -> 연간 정산으로 집계
-     *
-     * @param brandId 브랜드 ID
-     * @param year 연도
-     * @return 생성된 연간 정산 (데이터가 없으면 Optional.empty())
-     */
     @Transactional
     public Optional<SettlementYearly> aggregateToYearly(Long brandId, int year) {
         log.info("연간 정산 집계 시작: brandId={}, 연도={}", brandId, year);
@@ -232,7 +178,6 @@ public class SettlementAggregationService {
         LocalDate startDate = LocalDate.of(year, 1, 1);
         LocalDate endDate = LocalDate.of(year, 12, 31);
 
-        // settlements_monthly 데이터 집계
         List<YearlyAggregationDto> aggregations = monthlyMapper.aggregateByYearly(brandId, startDate, endDate);
 
         if (aggregations.isEmpty()) {

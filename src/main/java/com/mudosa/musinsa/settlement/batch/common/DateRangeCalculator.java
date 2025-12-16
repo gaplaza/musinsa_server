@@ -7,9 +7,6 @@ import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.YearMonth;
 
-/**
- * 정산 기간 계산 유틸리티
- */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class DateRangeCalculator {
 

@@ -3,16 +3,13 @@ package com.mudosa.musinsa.settlement.domain.model;
 import com.mudosa.musinsa.common.domain.model.BaseEntity;
 import com.mudosa.musinsa.common.vo.Money;
 import jakarta.persistence.*;
-import lombok.AccessLevel;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import lombok.extern.slf4j.Slf4j;
 
 import java.time.DateTimeException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-
 
 @Entity
 @Table(
@@ -22,14 +19,17 @@ import java.time.ZoneId;
         @UniqueConstraint(columnNames = {"brand_id", "settlement_year"})
     },
     indexes = {
-        @Index(name = "idx_settlement_year", columnList = "settlement_year"),
-        @Index(name = "idx_brand_id", columnList = "brand_id"),
-        @Index(name = "idx_settlement_status", columnList = "settlement_status")
+        @Index(name = "idx_yearly_settlement_year", columnList = "settlement_year"),
+        @Index(name = "idx_yearly_brand_id", columnList = "brand_id"),
+        @Index(name = "idx_yearly_settlement_status", columnList = "settlement_status")
     }
 )
 @Getter
+@Builder(access = AccessLevel.PUBLIC)
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Slf4j
+@SuppressWarnings("lombok")
 public class SettlementYearly extends BaseEntity {
 
     @Id
@@ -85,48 +85,92 @@ public class SettlementYearly extends BaseEntity {
     @Column(name = "aggregated_at")
     private LocalDateTime aggregatedAt;
 
+    @Column(name = "confirmed_at")
+    private LocalDateTime confirmedAt;
+
     @Column(name = "completed_at")
     private LocalDateTime completedAt;
 
-    /* 연간 정산 생성 */
-    public static SettlementYearly create(
+    
+    public static SettlementYearly createYearlySettlement(
         Long brandId,
         int year,
         String settlementNumber,
         String timezone
     ) {
-        SettlementYearly settlement = new SettlementYearly();
-        settlement.brandId = brandId;
-        settlement.settlementYear = year;
-        settlement.settlementNumber = settlementNumber;
+        return builder()
+            .brandId(brandId)
+            .settlementYear(year)
+            .settlementNumber(settlementNumber)
+            .settlementTimezone(validateTimezone(timezone))
+            .yearStartDate(LocalDate.of(year, 1, 1))
+            .yearEndDate(LocalDate.of(year, 12, 31))
+            .settlementStatus(SettlementStatus.PENDING)
+            .totalOrderCount(0)
+            .totalSalesAmount(Money.ZERO)
+            .totalCommissionAmount(Money.ZERO)
+            .totalTaxAmount(Money.ZERO)
+            .totalPgFeeAmount(Money.ZERO)
+            .finalSettlementAmount(Money.ZERO)
+            .build();
+    }
 
-        // 타임존 검증
+    
+    public static SettlementYearly createFromAggregation(
+        Long brandId,
+        int year,
+        String settlementNumber,
+        String timezone,
+        int totalOrderCount,
+        Money totalSalesAmount,
+        Money totalCommissionAmount,
+        Money totalTaxAmount,
+        Money totalPgFeeAmount
+    ) {
+        Money finalAmount = totalSalesAmount
+            .subtract(totalCommissionAmount)
+            .subtract(totalTaxAmount)
+            .subtract(totalPgFeeAmount);
+
+        return builder()
+            .brandId(brandId)
+            .settlementYear(year)
+            .settlementNumber(settlementNumber)
+            .settlementTimezone(validateTimezone(timezone))
+            .yearStartDate(LocalDate.of(year, 1, 1))
+            .yearEndDate(LocalDate.of(year, 12, 31))
+            .totalOrderCount(totalOrderCount)
+            .totalSalesAmount(totalSalesAmount)
+            .totalCommissionAmount(totalCommissionAmount)
+            .totalTaxAmount(totalTaxAmount)
+            .totalPgFeeAmount(totalPgFeeAmount)
+            .finalSettlementAmount(finalAmount)
+            .settlementStatus(SettlementStatus.PENDING)
+            .build();
+    }
+
+    private static String validateTimezone(String timezone) {
         try {
-            ZoneId zoneId = ZoneId.of(timezone);
-            settlement.settlementTimezone = timezone;
+            return ZoneId.of(timezone).getId();
         } catch (DateTimeException e) {
             log.warn("유효하지 않은 타임존: {}. UTC로 기본 설정합니다.", timezone, e);
-            settlement.settlementTimezone = "UTC";
+            return "UTC";
         }
-
-        // 연도의 시작일과 종료일 계산
-        settlement.yearStartDate = LocalDate.of(year, 1, 1);
-        settlement.yearEndDate = LocalDate.of(year, 12, 31);
-
-        return settlement;
     }
 
-    /* 월간 정산 추가 (집계) */
-    public void addMonthlySettlement(SettlementMonthly monthly) {
-        this.totalOrderCount += monthly.getTotalOrderCount();
-        this.totalSalesAmount = this.totalSalesAmount.add(monthly.getTotalSalesAmount());
-        this.totalCommissionAmount = this.totalCommissionAmount.add(monthly.getTotalCommissionAmount());
-        this.totalTaxAmount = this.totalTaxAmount.add(monthly.getTotalTaxAmount());
-        this.totalPgFeeAmount = this.totalPgFeeAmount.add(monthly.getTotalPgFeeAmount());
-        this.finalSettlementAmount = calculateFinalAmount();
+    
+    public static SettlementYearlyBuilder testBuilder() {
+        return builder()
+            .settlementStatus(SettlementStatus.PENDING)
+            .settlementTimezone("UTC")
+            .totalOrderCount(0)
+            .totalSalesAmount(Money.ZERO)
+            .totalCommissionAmount(Money.ZERO)
+            .totalTaxAmount(Money.ZERO)
+            .totalPgFeeAmount(Money.ZERO)
+            .finalSettlementAmount(Money.ZERO);
     }
 
-    /* 집계된 데이터 직접 설정 (쿼리 기반 집계용) */
     public void setAggregatedData(
         int totalOrderCount,
         Money totalSalesAmount,
@@ -142,7 +186,22 @@ public class SettlementYearly extends BaseEntity {
         this.finalSettlementAmount = calculateFinalAmount();
     }
 
-    /* 최종 정산 금액 계산 */
+    
+    public void addAggregatedData(
+        int orderCount,
+        Money salesAmount,
+        Money commissionAmount,
+        Money taxAmount,
+        Money pgFeeAmount
+    ) {
+        this.totalOrderCount += orderCount;
+        this.totalSalesAmount = this.totalSalesAmount.add(salesAmount);
+        this.totalCommissionAmount = this.totalCommissionAmount.add(commissionAmount);
+        this.totalTaxAmount = this.totalTaxAmount.add(taxAmount);
+        this.totalPgFeeAmount = this.totalPgFeeAmount.add(pgFeeAmount);
+        this.finalSettlementAmount = calculateFinalAmount();
+    }
+
     private Money calculateFinalAmount() {
         return totalSalesAmount
             .subtract(totalCommissionAmount)
@@ -150,20 +209,18 @@ public class SettlementYearly extends BaseEntity {
             .subtract(totalPgFeeAmount);
     }
 
-    /* 집계 처리 시작 */
     public void startProcessing() {
-        this.settlementStatus = SettlementStatus.PROCESSING;
+        this.settlementStatus = SettlementStatus.PENDING;
         this.aggregatedAt = LocalDateTime.now(ZoneId.of("UTC"));
     }
 
-    /* 정산 완료 */
+    public void confirm() {
+        this.settlementStatus = SettlementStatus.CONFIRMED;
+        this.confirmedAt = LocalDateTime.now(ZoneId.of("UTC"));
+    }
+
     public void complete() {
         this.settlementStatus = SettlementStatus.COMPLETED;
         this.completedAt = LocalDateTime.now(ZoneId.of("UTC"));
-    }
-
-    /* 정산 실패 */
-    public void fail() {
-        this.settlementStatus = SettlementStatus.FAILED;
     }
 }

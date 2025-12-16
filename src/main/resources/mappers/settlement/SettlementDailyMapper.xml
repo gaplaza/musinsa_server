@@ -4,8 +4,50 @@
 
 <mapper namespace="com.mudosa.musinsa.settlement.domain.repository.SettlementDailyMapper">
 
+    <!-- Phase 2: Batch INSERT -->
+    <insert id="batchInsert">
+        INSERT INTO settlements_daily (
+            settlement_number,
+            brand_id,
+            settlement_date,
+            settlement_timezone,
+            total_order_count,
+            total_sales_amount,
+            total_commission_amount,
+            total_tax_amount,
+            total_pg_fee_amount,
+            final_settlement_amount,
+            settlement_status,
+            aggregated_at,
+            confirmed_at,
+            completed_at,
+            created_at,
+            updated_at
+        ) VALUES
+        <foreach collection="list" item="item" separator=",">
+            (
+                #{item.settlementNumber},
+                #{item.brandId},
+                #{item.settlementDate},
+                #{item.settlementTimezone},
+                #{item.totalOrderCount},
+                #{item.totalSalesAmount.amount},
+                #{item.totalCommissionAmount.amount},
+                #{item.totalTaxAmount.amount},
+                #{item.totalPgFeeAmount.amount},
+                #{item.finalSettlementAmount.amount},
+                #{item.settlementStatus},
+                #{item.aggregatedAt},
+                #{item.confirmedAt},
+                #{item.completedAt},
+                NOW(),
+                NOW()
+            )
+        </foreach>
+    </insert>
+
     <!-- 주간 집계 쿼리 -->
-    <select id="aggregateByWeekly" resultType="com.mudosa.musinsa.settlement.batch.dto.WeeklyAggregationDto">
+    <select id="aggregateByWeekly" resultType="com.mudosa.musinsa.settlement.application.dto.WeeklyAggregationDto">
         SELECT
             brand_id as brandId,
             YEAR(settlement_date) as "year",
@@ -19,14 +61,14 @@
             COALESCE(SUM(total_tax_amount), 0) as totalTaxAmount,
             COALESCE(SUM(total_pg_fee_amount), 0) as totalPgFeeAmount
         FROM settlements_daily
-        WHERE brand_id = #{brandId}
-          AND settlement_date BETWEEN #{startDate} AND #{endDate}
+        WHERE settlement_date BETWEEN #{startDate} AND #{endDate}
+          AND settlement_status = 'CONFIRMED'
         GROUP BY brand_id, YEAR(settlement_date), WEEK(settlement_date)
-        ORDER BY YEAR(settlement_date), WEEK(settlement_date)
+        ORDER BY brand_id, YEAR(settlement_date), WEEK(settlement_date)
     </select>
 
     <!-- 월간 집계 쿼리 -->
-    <select id="aggregateByMonthly" resultType="com.mudosa.musinsa.settlement.batch.dto.MonthlyAggregationDto">
+    <select id="aggregateByMonthly" resultType="com.mudosa.musinsa.settlement.application.dto.MonthlyAggregationDto">
         SELECT
             brand_id as brandId,
             YEAR(settlement_date) as "year",
@@ -37,10 +79,10 @@
             COALESCE(SUM(total_tax_amount), 0) as totalTaxAmount,
             COALESCE(SUM(total_pg_fee_amount), 0) as totalPgFeeAmount
         FROM settlements_daily
-        WHERE brand_id = #{brandId}
-          AND settlement_date BETWEEN #{startDate} AND #{endDate}
+        WHERE settlement_date BETWEEN #{startDate} AND #{endDate}
+          AND settlement_status = 'CONFIRMED'
         GROUP BY brand_id, YEAR(settlement_date), MONTH(settlement_date)
-        ORDER BY YEAR(settlement_date), MONTH(settlement_date)
+        ORDER BY brand_id, YEAR(settlement_date), MONTH(settlement_date)
     </select>
 
 </mapper>

@@ -3,16 +3,13 @@ package com.mudosa.musinsa.settlement.domain.model;
 import com.mudosa.musinsa.common.domain.model.BaseEntity;
 import com.mudosa.musinsa.common.vo.Money;
 import jakarta.persistence.*;
-import lombok.AccessLevel;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import lombok.extern.slf4j.Slf4j;
 
 import java.time.DateTimeException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-
 
 @Entity
 @Table(
@@ -22,14 +19,17 @@ import java.time.ZoneId;
         @UniqueConstraint(columnNames = {"brand_id", "settlement_date"})
     },
     indexes = {
-        @Index(name = "idx_settlement_date", columnList = "settlement_date"),
-        @Index(name = "idx_brand_id", columnList = "brand_id"),
-        @Index(name = "idx_settlement_status", columnList = "settlement_status")
+        @Index(name = "idx_daily_settlement_date", columnList = "settlement_date"),
+        @Index(name = "idx_daily_brand_id", columnList = "brand_id"),
+        @Index(name = "idx_daily_settlement_status", columnList = "settlement_status")
     }
 )
 @Getter
+@Builder(access = AccessLevel.PUBLIC)
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Slf4j
+@SuppressWarnings("lombok")
 public class SettlementDaily extends BaseEntity {
 
     @Id
@@ -79,44 +79,88 @@ public class SettlementDaily extends BaseEntity {
     @Column(name = "aggregated_at")
     private LocalDateTime aggregatedAt;
 
+    @Column(name = "confirmed_at")
+    private LocalDateTime confirmedAt;
+
     @Column(name = "completed_at")
     private LocalDateTime completedAt;
 
-    /* 일일 정산 생성 */
-    public static SettlementDaily create(
+    
+    public static SettlementDaily createDailySettlement(
         Long brandId,
         LocalDate settlementDate,
         String settlementNumber,
         String timezone
     ) {
-        SettlementDaily settlement = new SettlementDaily();
-        settlement.brandId = brandId;
-        settlement.settlementDate = settlementDate;
-        settlement.settlementNumber = settlementNumber;
+        return builder()
+            .brandId(brandId)
+            .settlementDate(settlementDate)
+            .settlementNumber(settlementNumber)
+            .settlementTimezone(validateTimezone(timezone))
+            .settlementStatus(SettlementStatus.PENDING)
+            .totalOrderCount(0)
+            .totalSalesAmount(Money.ZERO)
+            .totalCommissionAmount(Money.ZERO)
+            .totalTaxAmount(Money.ZERO)
+            .totalPgFeeAmount(Money.ZERO)
+            .finalSettlementAmount(Money.ZERO)
+            .build();
+    }
 
-        // 타임존 검증
+    
+    public static SettlementDaily createFromAggregation(
+        Long brandId,
+        LocalDate settlementDate,
+        String settlementNumber,
+        String timezone,
+        int totalOrderCount,
+        Money totalSalesAmount,
+        Money totalCommissionAmount,
+        Money totalTaxAmount,
+        Money totalPgFeeAmount
+    ) {
+        Money finalAmount = totalSalesAmount
+            .subtract(totalCommissionAmount)
+            .subtract(totalTaxAmount)
+            .subtract(totalPgFeeAmount);
+
+        return builder()
+            .brandId(brandId)
+            .settlementDate(settlementDate)
+            .settlementNumber(settlementNumber)
+            .settlementTimezone(validateTimezone(timezone))
+            .totalOrderCount(totalOrderCount)
+            .totalSalesAmount(totalSalesAmount)
+            .totalCommissionAmount(totalCommissionAmount)
+            .totalTaxAmount(totalTaxAmount)
+            .totalPgFeeAmount(totalPgFeeAmount)
+            .finalSettlementAmount(finalAmount)
+            .settlementStatus(SettlementStatus.PENDING)
+            .build();
+    }
+
+    private static String validateTimezone(String timezone) {
         try {
-            ZoneId zoneId = ZoneId.of(timezone);
-            settlement.settlementTimezone = timezone;
+            return ZoneId.of(timezone).getId();
         } catch (DateTimeException e) {
             log.warn("유효하지 않은 타임존: {}. UTC로 기본 설정합니다.", timezone, e);
-            settlement.settlementTimezone = "UTC";
+            return "UTC";
         }
-
-        return settlement;
     }
 
-    /* 거래 추가 (집계) */
-    public void addTransaction(SettlementPerTransaction transaction) {
-        this.totalOrderCount++;
-        this.totalSalesAmount = this.totalSalesAmount.add(transaction.getTransactionAmount());
-        this.totalCommissionAmount = this.totalCommissionAmount.add(transaction.getCommissionAmount());
-        this.totalTaxAmount = this.totalTaxAmount.add(transaction.getTaxAmount());
-        this.totalPgFeeAmount = this.totalPgFeeAmount.add(transaction.getPgFeeAmount());
-        this.finalSettlementAmount = calculateFinalAmount();
+    
+    public static SettlementDailyBuilder testBuilder() {
+        return builder()
+            .settlementStatus(SettlementStatus.PENDING)
+            .settlementTimezone("UTC")
+            .totalOrderCount(0)
+            .totalSalesAmount(Money.ZERO)
+            .totalCommissionAmount(Money.ZERO)
+            .totalTaxAmount(Money.ZERO)
+            .totalPgFeeAmount(Money.ZERO)
+            .finalSettlementAmount(Money.ZERO);
     }
 
-    /* 집계된 데이터 직접 설정 (쿼리 기반 집계용) */
     public void setAggregatedData(
         int totalOrderCount,
         Money totalSalesAmount,
@@ -132,7 +176,22 @@ public class SettlementDaily extends BaseEntity {
         this.finalSettlementAmount = calculateFinalAmount();
     }
 
-    /* 최종 정산 금액 계산 */
+    
+    public void addAggregatedData(
+        int orderCount,
+        Money salesAmount,
+        Money commissionAmount,
+        Money taxAmount,
+        Money pgFeeAmount
+    ) {
+        this.totalOrderCount += orderCount;
+        this.totalSalesAmount = this.totalSalesAmount.add(salesAmount);
+        this.totalCommissionAmount = this.totalCommissionAmount.add(commissionAmount);
+        this.totalTaxAmount = this.totalTaxAmount.add(taxAmount);
+        this.totalPgFeeAmount = this.totalPgFeeAmount.add(pgFeeAmount);
+        this.finalSettlementAmount = calculateFinalAmount();
+    }
+
     private Money calculateFinalAmount() {
         return totalSalesAmount
             .subtract(totalCommissionAmount)
@@ -140,20 +199,18 @@ public class SettlementDaily extends BaseEntity {
             .subtract(totalPgFeeAmount);
     }
 
-    /* 집계 처리 시작 */
     public void startProcessing() {
-        this.settlementStatus = SettlementStatus.PROCESSING;
+        this.settlementStatus = SettlementStatus.PENDING;
         this.aggregatedAt = LocalDateTime.now(ZoneId.of("UTC"));
     }
 
-    /* 정산 완료 */
+    public void confirm() {
+        this.settlementStatus = SettlementStatus.CONFIRMED;
+        this.confirmedAt = LocalDateTime.now(ZoneId.of("UTC"));
+    }
+
     public void complete() {
         this.settlementStatus = SettlementStatus.COMPLETED;
         this.completedAt = LocalDateTime.now(ZoneId.of("UTC"));
-    }
-
-    /* 정산 실패 */
-    public void fail() {
-        this.settlementStatus = SettlementStatus.FAILED;
     }
 }

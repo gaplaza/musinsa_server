@@ -4,12 +4,6 @@ import com.mudosa.musinsa.common.vo.Money;
 import lombok.Builder;
 import lombok.Getter;
 
-/**
- * 정산 통계 응답 DTO
- *
- * 브랜드별 기간별 정산 통계 제공
- * 오늘/이번주/이번달/올해/전체 기간 매출액 및 주문 건수
- */
 @Getter
 @Builder
 public class SettlementStatisticsResponse {

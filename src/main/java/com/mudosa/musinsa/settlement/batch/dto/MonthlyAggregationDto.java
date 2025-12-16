@@ -5,9 +5,6 @@ import lombok.Getter;
 
 import java.math.BigDecimal;
 
-/**
- * 월간 집계 DTO
- */
 @Getter
 public class MonthlyAggregationDto {
 

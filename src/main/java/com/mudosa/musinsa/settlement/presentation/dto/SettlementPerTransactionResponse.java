@@ -10,9 +10,6 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
-/**
- * 거래별 정산 응답 DTO
- */
 @Getter
 @Builder
 public class SettlementPerTransactionResponse {

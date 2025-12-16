@@ -23,20 +23,6 @@ import org.springframework.transaction.PlatformTransactionManager;
 
 import java.time.LocalDate;
 
-/**
- * 일일 정산 집계 배치 Job
- *
- * 거래별 정산 데이터를 일일 단위로 집계
- * 매일 자정 자동 실행
- *
- * 처리 흐름:
- * 모든 브랜드 ID 조회 (BrandIdReader)
- * -> 브랜드별로 어제 날짜의 거래별 정산 데이터 집계
- * -> SettlementPerTransaction → SettlementDaily 변환 및 저장
- *
- * JobParameter:
- * - targetDate (Optional): 미지정 시 어제
- */
 @Slf4j
 @Configuration
 @Profile("disabled")  // TODO: 배치 설정 완료 후 "!dev"로 복구 필요
@@ -77,7 +63,6 @@ public class DailySettlementAggregationJob {
             @Value("#{jobParameters['targetDate']}") String targetDateStr
     ) {
         return brandId -> {
-            // JobParameters에서 targetDate 가져오기 (없으면 어제 기본값)
             LocalDate targetDate;
             if (targetDateStr != null && !targetDateStr.isEmpty()) {
                 targetDate = LocalDate.parse(targetDateStr);

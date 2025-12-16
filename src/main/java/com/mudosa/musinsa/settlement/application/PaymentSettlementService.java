@@ -24,12 +24,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 
-/**
- * 결제-정산 연동 서비스
- *
- * 트리거: PaymentApprovedEvent (결제 승인 이벤트)
- * 결제가 완료될 때마다 자동 실행
- */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -41,7 +35,6 @@ public class PaymentSettlementService {
     private final SettlementApplicationService settlementApplicationService;
     private final PgFeeCalculator pgFeeCalculator;
 
-    //TODO: Async학습 !! 비동기를 이렇게 쓰면 문제가 생긴다
     @Async
     @EventListener
     public void onPaymentApproved(PaymentApprovedEvent event) {
@@ -52,7 +45,6 @@ public class PaymentSettlementService {
             createSettlementsForPayment(event.getPaymentId(), event.getPgTransactionId());
         } catch (Exception e) {
             log.error("Settlement 생성 실패 - 수동 처리 필요, paymentId={}", event.getPaymentId(), e);
-            // TODO: 재시도 큐에 추가 또는 관리자 알림 로직 구현
         }
     }
 
@@ -95,7 +87,6 @@ public class PaymentSettlementService {
 
         String timezone = "Asia/Seoul";
 
-        //TODO: 메서드 분리가 필요할까?
         settlementApplicationService.createSettlementTransaction(
                 brandId,
                 payment.getId(),

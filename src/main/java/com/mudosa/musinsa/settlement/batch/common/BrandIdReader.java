@@ -8,9 +8,6 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 
-/**
- * 브랜드 ID 목록을 읽어오는 Reader 생성기
- */
 @Slf4j
 @Component
 @RequiredArgsConstructor

@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.mudosa.musinsa.settlement.domain.repository.SettlementYearlyMapper">
+
+    <!-- Phase 2: Batch INSERT -->
+    <insert id="batchInsert">
+        INSERT INTO settlements_yearly (
+            settlement_number,
+            brand_id,
+            settlement_year,
+            year_start_date,
+            year_end_date,
+            settlement_timezone,
+            total_order_count,
+            total_sales_amount,
+            total_commission_amount,
+            total_tax_amount,
+            total_pg_fee_amount,
+            final_settlement_amount,
+            settlement_status,
+            aggregated_at,
+            confirmed_at,
+            completed_at,
+            created_at,
+            updated_at
+        ) VALUES
+        <foreach collection="list" item="item" separator=",">
+            (
+                #{item.settlementNumber},
+                #{item.brandId},
+                #{item.settlementYear},
+                #{item.yearStartDate},
+                #{item.yearEndDate},
+                #{item.settlementTimezone},
+                #{item.totalOrderCount},
+                #{item.totalSalesAmount.amount},
+                #{item.totalCommissionAmount.amount},
+                #{item.totalTaxAmount.amount},
+                #{item.totalPgFeeAmount.amount},
+                #{item.finalSettlementAmount.amount},
+                #{item.settlementStatus},
+                #{item.aggregatedAt},
+                #{item.confirmedAt},
+                #{item.completedAt},
+                NOW(),
+                NOW()
+            )
+        </foreach>
+    </insert>
+
+</mapper>

@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mudosa.musinsa.batch.settlement.mapper.PaymentSettlementMapper">
+
+    <!-- payment_brand_amount 테이블 사용 (JOIN 5개 → 1개로 최적화) -->
+    <select id="findPendingPaymentsWithBrandAmount" resultType="com.mudosa.musinsa.batch.settlement.dto.PaymentSettlementDto">
+        SELECT
+            p.payment_id AS paymentId,
+            p.pg_transaction_id AS pgTransactionId,
+            p.pg_provider AS pgProvider,
+            p.method AS paymentMethod,
+            p.order_id AS orderId,
+            pba.brand_id AS brandId,
+            pba.amount AS totalAmount,
+            pba.commission_rate AS commissionRate
+        FROM payment p
+        INNER JOIN payment_brand_amount pba ON p.payment_id = pba.payment_id
+        WHERE p.settled_at IS NULL
+          AND p.payment_status = 'APPROVED'
+        ORDER BY p.payment_id ASC
+        LIMIT #{_pagesize} OFFSET #{_skiprows}
+    </select>
+
+    <!-- 미정산 Payment 수 조회 -->
+    <select id="countPendingPayments" resultType="long">
+        SELECT COUNT(*)
+        FROM payment
+        WHERE settled_at IS NULL
+          AND payment_status = 'APPROVED'
+    </select>
+
+    <!-- Payment settled_at 일괄 업데이트 -->
+    <update id="markSettledByIds">
+        UPDATE payment
+        SET settled_at = NOW(), updated_at = NOW()
+        WHERE payment_id IN
+        <foreach collection="paymentIds" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </update>
+
+</mapper>
