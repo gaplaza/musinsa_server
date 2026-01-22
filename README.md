@@ -10,7 +10,7 @@
 
 # 기술스택
 <p align="center">
-<img width="827" height="465" alt="image" src="https://github.com/user-attachments/assets/b6291c44-287d-4344-a9e6-9ed902c4ccad" />
+<img width="827" height="465" alt="image" src="https://github.com/user-attachments/assets/43107745-4d25-413b-9087-4461930036d1" />
 </p>
 
 # 아키텍처
